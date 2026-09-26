@@ -4,19 +4,23 @@
   "private": true,
   "main": "index.ts",
   "dependencies": {
-    "@graph8/sdk": "latest",
     "@google/genai": "latest",
+    "@graph8/sdk": "latest",
     "@supabase/supabase-js": "latest",
     "drizzle-orm": "latest",
-    "pg": "latest",
-    "pdf-parse": "latest",
     "mammoth": "latest",
-    "zod": "latest",
-    "uuid": "latest"
+    "pdf-parse": "latest",
+    "pg": "latest",
+    "postgres": "^3.4.9",
+    "uuid": "latest",
+    "zod": "latest"
   },
   "devDependencies": {
-    "drizzle-kit": "latest",
     "@types/node": "latest",
+    "@types/pdf-parse": "^1.1.5",
+    "dotenv": "^18.0.4",
+    "drizzle-kit": "latest",
+    "tsx": "^4.23.15",
     "typescript": "latest"
   }
 }

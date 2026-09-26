@@ -105,7 +105,7 @@ export const getRadar = async (companyId: string): Promise<RadarSignal[]> => {
 };
 
 export const getKnowledge = async (query: string): Promise<KnowledgeItem[]> => {
-  return Array.from(fakeData.knowledge.values()).filter(k => k.title.includes(query) || k.content.includes(query));
+  return Array.from(fakeData.knowledge.values()).flat().filter(k => k.title.includes(query) || k.content.includes(query));
 };
 
 export const createOrUpdateDeal = async (ctx: any, data: any): Promise<any> => {
@@ -136,6 +136,4 @@ export const createTask = async (ctx: any, data: any, identifier: string): Promi
   return { id: uuidv4(), ...data };
 };
 
-export const associateContacts = async (ctx: any, dealId: string, contactIds: string[]): Promise<any> => {
-  return { success: true };
-};
+// Removed associateContacts
