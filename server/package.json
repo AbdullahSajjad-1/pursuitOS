@@ -1,0 +1,22 @@
+{
+  "name": "@pursuitos/server",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "dependencies": {
+    "@graph8/sdk": "latest",
+    "@google/genai": "latest",
+    "@supabase/supabase-js": "latest",
+    "drizzle-orm": "latest",
+    "pg": "latest",
+    "pdf-parse": "latest",
+    "mammoth": "latest",
+    "zod": "latest",
+    "uuid": "latest"
+  },
+  "devDependencies": {
+    "drizzle-kit": "latest",
+    "@types/node": "latest",
+    "typescript": "latest"
+  }
+}
