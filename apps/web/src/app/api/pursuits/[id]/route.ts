@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../../../../../server/db/client';
-import { pursuits, opportunityRequirements, councilRuns, councilReviews, evidenceEvents } from '../../../../../../../server/db/schema';
+import { db } from '@pursuitos/server/db/client';
+import { pursuits, opportunityRequirements, councilRuns, councilReviews, evidenceEvents } from '@pursuitos/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -24,7 +24,7 @@ export async function GET(
       .limit(1);
     
     let synthesis = null;
-    let reviews = [];
+    let reviews: any[] = [];
 
     if (runs.length > 0) {
       const latestRun = runs[0];

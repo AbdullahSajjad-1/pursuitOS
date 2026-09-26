@@ -50,7 +50,8 @@ export function evaluateHardGates(
   );
   if (criticalSecurity.length > 0 && ctoReview) {
     const securityBlock = ctoReview.risks.some(
-      risk => risk.toLowerCase().includes('impossible') || risk.toLowerCase().includes('cannot meet')
+      risk => (risk.toLowerCase().includes('impossible') || risk.toLowerCase().includes('cannot meet')) 
+              && (risk.toLowerCase().includes('security') || risk.toLowerCase().includes('compliance'))
     );
     if (securityBlock) {
       return { blocked: true, reason: `Critical security requirement cannot be met: ${criticalSecurity[0].text}` };

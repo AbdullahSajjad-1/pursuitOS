@@ -24,7 +24,10 @@ const MatcherSchema = {
 export async function matchHistoricalDeals(pursuitId: string) {
   // 1. Fetch current opportunity requirements
   const reqs = await db.select().from(opportunityRequirements).where(eq(opportunityRequirements.pursuitId, pursuitId));
-  if (reqs.length === 0) return 0;
+  if (reqs.length === 0) {
+    await db.delete(historicalMatches).where(eq(historicalMatches.pursuitId, pursuitId));
+    return 0;
+  }
   
   const reqsSummary = reqs.map(r => `[${r.category}] ${r.priority}: ${r.text}`).join('\n');
 
@@ -33,7 +36,10 @@ export async function matchHistoricalDeals(pursuitId: string) {
     .from(evidence)
     .where(and(eq(evidence.pursuitId, pursuitId), eq(evidence.sourceType, 'deal')));
 
-  if (dealEvidences.length === 0) return 0;
+  if (dealEvidences.length === 0) {
+    await db.delete(historicalMatches).where(eq(historicalMatches.pursuitId, pursuitId));
+    return 0;
+  }
 
   // We also might want to fetch notes tied to these deals to understand why they were lost
   // For MVP, the deal object itself might have enough context, or we just pass the deals to the LLM
@@ -75,20 +81,23 @@ export async function matchHistoricalDeals(pursuitId: string) {
   }
 
   // 4. Validate and Save to DB
-  await db.delete(historicalMatches).where(eq(historicalMatches.pursuitId, pursuitId));
+  await db.transaction(async (tx) => {
+    await tx.delete(historicalMatches).where(eq(historicalMatches.pursuitId, pursuitId));
 
-  const validDealIds = new Set(dealEvidences.map(d => JSON.parse(d.content).id));
-  const validMatches = matches.filter(m => validDealIds.has(m.dealId));
+    const validDealIds = new Set(dealEvidences.map(d => JSON.parse(d.content).id));
+    const validMatches = matches.filter(m => validDealIds.has(m.dealId));
 
-  if (validMatches.length > 0) {
-    const toInsert = validMatches.map(m => ({
-      pursuitId,
-      dealId: m.dealId,
-      similarityScore: m.similarityScore,
-      lossReason: m.lossReason || null
-    }));
-    await db.insert(historicalMatches).values(toInsert);
-  }
+    if (validMatches.length > 0) {
+      const toInsert = validMatches.map(m => ({
+        pursuitId,
+        dealId: m.dealId,
+        similarityScore: m.similarityScore,
+        lossReason: m.lossReason || null
+      }));
+      await tx.insert(historicalMatches).values(toInsert);
+    }
+  });
 
-  return validMatches.length;
+  const finalValidDealIds = new Set(dealEvidences.map(d => JSON.parse(d.content).id));
+  return matches.filter(m => finalValidDealIds.has(m.dealId)).length;
 }

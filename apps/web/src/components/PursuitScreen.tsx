@@ -7,10 +7,25 @@ export default function PursuitScreenClient({
   pursuit, requirements, synthesis, reviews, events 
 }: any) {
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executeSuccess, setExecuteSuccess] = useState(false);
 
   // Parse conditions & actions if they exist
   const conditions = synthesis?.conditions || [];
   const recommendedActions = synthesis?.recommendedAction ? [synthesis.recommendedAction] : [];
+
+  const handleExecute = async () => {
+    setIsExecuting(true);
+    try {
+      const res = await fetch(`/api/pursuits/${pursuit.id}/execute`, { method: 'POST' });
+      if (!res.ok) throw new Error('Execution failed');
+      setExecuteSuccess(true);
+    } catch (e) {
+      alert('Failed to execute actions in Graph8.');
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8 pb-24">
@@ -149,8 +164,18 @@ export default function PursuitScreenClient({
                   </div>
                 ))}
                 
-                <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">
-                  Approve Selected Actions
+                <button 
+                  onClick={handleExecute}
+                  disabled={isExecuting || executeSuccess}
+                  className={`w-full mt-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    executeSuccess 
+                      ? 'bg-green-600 text-white' 
+                      : isExecuting
+                        ? 'bg-blue-600/50 text-white cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {executeSuccess ? '✓ Executed in Graph8' : isExecuting ? 'Executing...' : 'Approve & Execute Actions'}
                 </button>
               </div>
             ) : (

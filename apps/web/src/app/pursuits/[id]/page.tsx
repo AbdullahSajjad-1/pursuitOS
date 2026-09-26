@@ -1,5 +1,5 @@
-import { db } from '../../../../../server/db/client';
-import { pursuits, opportunityRequirements, councilRuns, councilReviews, evidenceEvents } from '../../../../../server/db/schema';
+import { db } from '@pursuitos/server/db/client';
+import { pursuits, opportunityRequirements, councilRuns, councilReviews, evidenceEvents } from '@pursuitos/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import PursuitScreenClient from '../../../components/PursuitScreen';
@@ -24,7 +24,7 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
     .limit(1);
   
   let synthesis = null;
-  let reviews = [];
+  let reviews: any[] = [];
 
   if (runs.length > 0) {
     const latestRun = runs[0];

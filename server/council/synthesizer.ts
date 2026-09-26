@@ -69,7 +69,7 @@ export async function synthesize(
   console.log('[synthesizer] Running Gemini synthesis...');
   const ai = getAI();
   const model = getModelForRole('synthesis');
-  const { system, user } = getSynthesisPrompt(reviews, pursuit?.name || 'Unknown', pursuit?.companyId || 'Unknown');
+  const { system, user } = getSynthesisPrompt(reviews, pursuit?.name || 'Unknown', pursuit?.companyDomain || 'Unknown');
 
   const response = await withRetry(
     () => ai.models.generateContent({

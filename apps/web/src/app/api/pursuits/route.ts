@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../../../../server/db/client';
-import { pursuits } from '../../../../../../server/db/schema';
+import { db } from '@pursuitos/server/db/client';
+import { pursuits } from '@pursuitos/server/db/schema';
 import { desc } from 'drizzle-orm';
 
 export async function GET() {
