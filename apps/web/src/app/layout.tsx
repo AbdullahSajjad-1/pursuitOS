@@ -12,18 +12,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import AppShell from "../components/AppShell";
+
 export const metadata: Metadata = {
   title: "PursuitOS",
-  description: "AI-powered Bid/No-Bid Decision Engine",
+  description: "Executive Deal Intelligence Workspace",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased bg-black text-white`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-black">{children}</body>
+      <body className="h-full">
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

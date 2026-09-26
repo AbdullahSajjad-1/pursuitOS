@@ -2,59 +2,124 @@ import Link from 'next/link';
 import { db } from '@pursuitos/server/db/client';
 import { pursuits } from '@pursuitos/server/db/schema';
 import { desc } from 'drizzle-orm';
+import { Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PursuitsDashboard() {
   const allPursuits = await db.select().from(pursuits).orderBy(desc(pursuits.createdAt));
 
-  return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Active Pursuits</h1>
-        <Link 
-          href="/pursuits/new" 
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
-        >
-          New Pursuit
-        </Link>
-      </div>
+  // Helper for status formatting
+  const getStatusDisplay = (status: string) => {
+    if (status === 'ANALYZING') {
+      return (
+        <span className="flex items-center gap-2 text-accent text-[12px] font-medium">
+          <Clock size={12} className="animate-spin" /> Analyzing
+        </span>
+      );
+    }
+    if (status === 'ERROR') {
+      return (
+        <span className="flex items-center gap-2 text-nobid text-[12px] font-medium">
+          <AlertCircle size={12} /> Error
+        </span>
+      );
+    }
+    
+    // For MVP table, we'll just show 'Pending' if not analyzing or error
+    // In a real app we'd join with the latest council run decision.
+    return (
+      <span className="flex items-center gap-2 text-secondary text-[12px] font-medium">
+        <div className="w-1.5 h-1.5 rounded-full bg-disabled" /> Draft
+      </span>
+    );
+  };
 
-      {allPursuits.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-12 text-center text-gray-400">
-          No active pursuits found. Create one to get started.
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <header className="px-8 py-6 border-b border-border-subtle bg-canvas">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-[22px] font-semibold tracking-tight text-primary">Pursuits</h1>
+          <Link 
+            href="/pursuits/new" 
+            className="bg-primary text-canvas hover:bg-white px-4 py-2 rounded-md text-[13px] font-medium transition-colors"
+          >
+            New pursuit
+          </Link>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allPursuits.map(pursuit => (
-            <Link key={pursuit.id} href={`/pursuits/${pursuit.id}`}>
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-600 transition-colors h-full flex flex-col justify-between group">
-                <div>
-                  <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
-                    {pursuit.name}
-                  </h3>
-                  <p className="text-sm text-gray-400 mt-1">{pursuit.companyDomain}</p>
-                </div>
-                
-                <div className="mt-6 flex justify-between items-end">
-                  <div className="text-xs font-mono text-gray-500">
-                    {new Date(pursuit.createdAt).toLocaleDateString()}
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                    pursuit.status === 'BID' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                    pursuit.status === 'CONDITIONAL_BID' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                    pursuit.status === 'NO_BID' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                    pursuit.status === 'ANALYZING' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse' :
-                    'bg-gray-800 text-gray-300 border-gray-700'
-                  }`}>
-                    {pursuit.status.replace('_', ' ')}
-                  </span>
-                </div>
-              </div>
+        
+        {/* Filters Bar Mock */}
+        <div className="flex gap-4 items-center text-[13px]">
+          <button className="flex items-center gap-2 text-secondary hover:text-primary transition-colors">
+            All <span className="text-muted text-[11px] bg-surface-2 px-1.5 rounded">{allPursuits.length}</span>
+          </button>
+          <button className="text-muted hover:text-primary transition-colors">Needs review</button>
+          <button className="text-muted hover:text-primary transition-colors">Active</button>
+          <button className="text-muted hover:text-primary transition-colors">Decided</button>
+          
+          <div className="ml-auto flex items-center gap-3">
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                className="bg-surface-2 border border-border-subtle rounded-md pl-8 pr-3 py-1 text-[13px] text-primary placeholder-muted focus:outline-none focus:border-accent w-48 transition-colors"
+              />
+            </div>
+            <button className="flex items-center gap-2 text-muted hover:text-primary border border-border-subtle rounded-md px-2.5 py-1 transition-colors">
+              <Filter size={14} /> Filters
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Table Content */}
+      <div className="flex-1 overflow-auto bg-canvas">
+        {allPursuits.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[400px] text-center">
+            <p className="text-primary font-medium text-[14px]">No pursuits yet</p>
+            <p className="text-secondary text-[13px] mt-1 mb-4">Upload an RFP or connect an existing Graph8 opportunity to begin an analysis.</p>
+            <Link 
+              href="/pursuits/new" 
+              className="bg-primary text-canvas px-4 py-2 rounded-md text-[13px] font-medium transition-colors hover:bg-white"
+            >
+              New pursuit
             </Link>
-          ))}
-        </div>
-      )}
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-canvas sticky top-0 border-b border-border-subtle z-10">
+              <tr>
+                <th className="font-medium text-secondary text-[12px] py-3 pl-8 pr-4">Opportunity</th>
+                <th className="font-medium text-secondary text-[12px] py-3 px-4">Company</th>
+                <th className="font-medium text-secondary text-[12px] py-3 px-4">Decision</th>
+                <th className="font-medium text-secondary text-[12px] py-3 pr-8 pl-4 text-right">Last updated</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-subtle">
+              {allPursuits.map((pursuit) => (
+                <tr key={pursuit.id} className="group hover:bg-surface focus-within:bg-surface focus-within:ring-2 focus-within:ring-inset focus-within:ring-accent transition-colors cursor-pointer relative">
+                  {/* We make the whole row clickable via an absolute link inside the first cell */}
+                  <td className="py-3 pl-8 pr-4 text-[13px] text-primary font-medium">
+                    <Link href={`/pursuits/${pursuit.id}`} className="absolute inset-0 z-0 focus:outline-none" aria-label={`View ${pursuit.name}`}></Link>
+                    <span className="relative z-10">{pursuit.name}</span>
+                  </td>
+                  <td className="py-3 px-4 text-[13px] text-secondary relative z-10">
+                    {pursuit.companyDomain || '—'}
+                  </td>
+                  <td className="py-3 px-4 relative z-10">
+                    {getStatusDisplay(pursuit.status)}
+                  </td>
+                  <td className="py-3 pr-8 pl-4 text-[13px] text-muted tabular-nums relative z-10 text-right">
+                    {new Date(pursuit.updatedAt || pursuit.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

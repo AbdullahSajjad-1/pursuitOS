@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { CheckCircle2, AlertTriangle, ArrowRight, XCircle, Info, ChevronRight, Check } from 'lucide-react';
 
-// The main client component that receives the fetched data
 export default function PursuitScreenClient({ 
   pursuit, requirements, synthesis, reviews, events 
 }: any) {
-  const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
+  const [selectedEvidenceText, setSelectedEvidenceText] = useState<string | null>(null);
+  const [selectedEvidenceType, setSelectedEvidenceType] = useState<'factor' | 'risk' | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executeSuccess, setExecuteSuccess] = useState(false);
 
-  // Parse conditions & actions if they exist
+  // Fallbacks for data shape
   const conditions = synthesis?.conditions || [];
   const recommendedActions = synthesis?.recommendedAction ? [synthesis.recommendedAction] : [];
 
@@ -27,188 +28,213 @@ export default function PursuitScreenClient({
     }
   };
 
-  return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8 pb-24">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">{pursuit.name}</h1>
-        <p className="text-gray-400 mt-1">{pursuit.companyDomain} • Status: {pursuit.status.replace('_', ' ')}</p>
-      </div>
+  const getDecisionColor = (decision: string) => {
+    if (decision === 'bid') return 'text-bid';
+    if (decision === 'no_bid') return 'text-nobid';
+    return 'text-conditional';
+  };
 
-      {/* DECISION BANNER */}
-      {synthesis && (
-        <div className={`p-6 rounded-xl border ${
-          synthesis.decision === 'BID' ? 'bg-green-900/20 border-green-500/30 text-green-300' :
-          synthesis.decision === 'CONDITIONAL_BID' ? 'bg-yellow-900/20 border-yellow-500/30 text-yellow-300' :
-          'bg-red-900/20 border-red-500/30 text-red-300'
-        }`}>
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold uppercase tracking-wider">
-              {synthesis.decision.replace('_', ' ')}
-            </h2>
-            <div className="text-right">
-              <div className="text-sm font-semibold opacity-80 uppercase tracking-wider">Confidence</div>
-              <div className="text-xl font-bold capitalize">{synthesis.confidence}</div>
-            </div>
+  return (
+    <div className="flex flex-col lg:flex-row h-full overflow-hidden bg-canvas">
+      
+      {/* 70% MAIN CONTENT AREA */}
+      <div className="flex-1 overflow-y-auto px-6 lg:px-12 py-10 border-r border-border-subtle relative">
+        
+        {/* Header Briefing */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 text-secondary text-[12px] font-medium tracking-wide uppercase mb-3">
+            <span>{pursuit.companyDomain}</span>
+            <span className="text-border-subtle">/</span>
+            <span>RFP</span>
           </div>
-          
-          <div className="mt-6 pt-6 border-t border-current/20">
-            <h3 className="text-sm font-semibold uppercase tracking-wider opacity-80 mb-2">Synthesis Rationale</h3>
-            <p className="text-current/90 leading-relaxed">
+          <h1 className="text-[26px] font-semibold tracking-tight text-primary">{pursuit.name}</h1>
+          <div className="mt-4 flex gap-6 text-[13px] text-muted">
+            <div><span className="text-secondary">Added:</span> {new Date(pursuit.createdAt).toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        {/* DECISION */}
+        {synthesis && (
+          <div className="mb-16 border-t border-border-subtle pt-8">
+            <div className="flex items-start gap-4 mb-4">
+              <div className={`mt-1.5 w-2.5 h-2.5 rounded-full ${synthesis.decision === 'bid' ? 'bg-bid' : synthesis.decision === 'no_bid' ? 'bg-nobid' : 'bg-conditional'}`} />
+              <div>
+                <h2 className={`text-[16px] font-bold uppercase tracking-wide ${getDecisionColor(synthesis.decision)}`}>
+                  {synthesis.decision.replace('_', ' ')}
+                </h2>
+                <div className="text-[12px] text-secondary font-medium uppercase tracking-wider mt-1">
+                  Confidence: {synthesis.confidence}
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-[14px] text-primary leading-relaxed max-w-3xl ml-6">
               {synthesis.rationale}
             </p>
+
+            {/* Inline Evidence Links (Dynamic) */}
+            <div className="mt-6 ml-6 space-y-2">
+              {synthesis.positive_factors?.map((factor: string, i: number) => (
+                <button 
+                  key={`factor-${i}`}
+                  onClick={() => { setSelectedEvidenceText(factor); setSelectedEvidenceType('factor'); }}
+                  className="flex items-center gap-2 text-[12px] text-secondary hover:text-primary transition-colors group text-left"
+                >
+                  <Check size={14} className="text-bid flex-shrink-0" />
+                  <span className="border-b border-dashed border-border-subtle group-hover:border-secondary">{factor}</span>
+                </button>
+              ))}
+              {synthesis.risks?.map((risk: string, i: number) => (
+                <button 
+                  key={`risk-${i}`}
+                  onClick={() => { setSelectedEvidenceText(risk); setSelectedEvidenceType('risk'); }}
+                  className="flex items-center gap-2 text-[12px] text-secondary hover:text-primary transition-colors group text-left"
+                >
+                  <AlertTriangle size={14} className="text-conditional flex-shrink-0" />
+                  <span className="border-b border-dashed border-border-subtle group-hover:border-secondary">{risk}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* LEFT COLUMN: Council & Events */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* COUNCIL REVIEWS */}
-          {reviews?.length > 0 && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Council Assessments</h3>
-              <div className="space-y-4">
+        {/* COUNCIL TABULAR VIEW */}
+        {reviews?.length > 0 && (
+          <div className="mb-16 border-t border-border-subtle pt-8">
+            <h3 className="text-[14px] font-semibold text-primary mb-6">Council Analysis</h3>
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-border-subtle text-secondary font-medium">
+                  <th className="pb-3 pr-4 font-medium w-1/5">Role</th>
+                  <th className="pb-3 px-4 font-medium w-2/5">Assessment</th>
+                  <th className="pb-3 px-4 font-medium w-1/5">Recommendation</th>
+                  <th className="pb-3 pl-4 font-medium text-right w-1/5">Score</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
                 {reviews.map((review: any) => (
-                  <div key={review.id} className="p-4 rounded-lg bg-gray-950 border border-gray-800">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-blue-400 uppercase tracking-wide text-sm">{review.role} Analyst</h4>
-                      <span className={`text-xs px-2 py-1 rounded-full border ${
-                        review.recommendation === 'bid' ? 'border-green-500/30 text-green-400' :
-                        review.recommendation === 'conditional_bid' ? 'border-yellow-500/30 text-yellow-400' :
-                        'border-red-500/30 text-red-400'
-                      }`}>
-                        {review.score}/100 • {review.recommendation.replace('_', ' ')}
+                  <tr key={review.id} className="group hover:bg-surface transition-colors">
+                    <td className="py-4 pr-4 font-medium text-primary capitalize">{review.role}</td>
+                    <td className="py-4 px-4 text-secondary truncate max-w-xs">{review.assessment}</td>
+                    <td className="py-4 px-4">
+                      <span className={`inline-flex items-center gap-1.5 ${getDecisionColor(review.recommendation)}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${review.recommendation === 'bid' ? 'bg-bid' : review.recommendation === 'no_bid' ? 'bg-nobid' : 'bg-conditional'}`} />
+                        {review.recommendation.replace('_', ' ')}
                       </span>
-                    </div>
-                    <p className="text-sm text-gray-300 leading-relaxed mb-3">{review.assessment}</p>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-xs mt-3 pt-3 border-t border-gray-800">
-                      <div>
-                        <strong className="text-gray-500 block mb-1">Key Positives</strong>
-                        <ul className="list-disc pl-4 text-gray-400 space-y-1">
-                          {review.positiveFactors?.map((f: string, i: number) => <li key={i}>{f}</li>)}
-                        </ul>
-                      </div>
-                      <div>
-                        <strong className="text-gray-500 block mb-1">Key Risks</strong>
-                        <ul className="list-disc pl-4 text-gray-400 space-y-1">
-                          {review.risks?.map((r: string, i: number) => <li key={i}>{r}</li>)}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
+                    </td>
+                    <td className="py-4 pl-4 text-right text-primary tabular-nums">{review.score}</td>
+                  </tr>
                 ))}
-              </div>
-            </div>
-          )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-          {/* EVENTS TIMELINE */}
-          {events?.length > 0 && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Material Events Timeline</h3>
-              <div className="space-y-4">
-                {events.map((event: any) => (
-                  <div key={event.id} className="relative pl-6 pb-4 border-l border-gray-800 last:border-0">
-                    <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full ${
-                      event.impact === 'positive' ? 'bg-green-500' :
-                      event.impact === 'negative' ? 'bg-red-500' : 'bg-gray-500'
-                    }`} />
-                    <h4 className="font-semibold text-gray-200 text-sm">
-                      <span className="text-gray-500 mr-2">[{event.severity.toUpperCase()}]</span> 
-                      {event.title}
-                    </h4>
-                    <p className="text-sm text-gray-400 mt-1">{event.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      </div>
 
-        {/* RIGHT COLUMN: Actions & Conditions */}
-        <div className="space-y-8">
+      {/* 30% DECISION RAIL (STICKY ON DESKTOP) */}
+      <div className="w-full lg:w-[380px] bg-surface flex-shrink-0 flex flex-col lg:h-full border-t lg:border-t-0 lg:border-l border-border-subtle">
+        <div className="p-6 lg:p-8 flex-1 overflow-y-auto">
           
-          {/* CONDITIONS */}
+          <h3 className="text-[12px] font-medium text-secondary uppercase tracking-wider mb-6">Execution Plan</h3>
+
+          {/* Blockers / Conditions */}
           {conditions.length > 0 && (
-            <div className="bg-yellow-900/10 border border-yellow-500/20 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-yellow-500 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Required Conditions
-              </h3>
+            <div className="mb-8">
+              <div className="flex items-center gap-2 text-conditional text-[13px] font-medium mb-3">
+                <AlertTriangle size={14} />
+                Pending Conditions
+              </div>
               <ul className="space-y-3">
                 {conditions.map((cond: string, i: number) => (
-                  <li key={i} className="text-sm text-yellow-200/90 flex gap-2">
-                    <span className="text-yellow-500 mt-0.5">•</span>
-                    <span>{cond}</span>
+                  <li key={i} className="text-[13px] text-primary flex items-start gap-2 leading-snug">
+                    <span className="text-border-subtle mt-1">-</span>
+                    {cond}
                   </li>
                 ))}
               </ul>
             </div>
           )}
 
-          {/* NEXT ACTIONS */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Proposed Actions</h3>
+          {/* Actions */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 text-primary text-[13px] font-medium mb-3">
+              <CheckCircle2 size={14} className="text-secondary" />
+              Graph8 Actions
+            </div>
             {recommendedActions.length > 0 ? (
               <div className="space-y-3">
-                {/* For the MVP, we just render the raw string or mapped object */}
+                <div className="p-4 bg-surface-2 border border-border-subtle rounded-md text-[13px]">
+                  <div className="text-primary font-medium mb-1">Create Deal</div>
+                  <div className="text-secondary">Stage: Qualification</div>
+                </div>
                 {recommendedActions.map((action: string, i: number) => (
-                  <div key={i} className="p-3 bg-gray-950 border border-gray-800 rounded-lg flex gap-3 items-start">
-                    <input type="checkbox" className="mt-1 rounded bg-gray-800 border-gray-700 text-blue-500 focus:ring-blue-500" />
-                    <span className="text-sm text-gray-300">{action}</span>
+                  <div key={i} className="p-4 bg-surface-2 border border-border-subtle rounded-md text-[13px]">
+                    <div className="text-primary font-medium mb-1">Create Task</div>
+                    <div className="text-secondary">{action}</div>
                   </div>
                 ))}
-                
-                <button 
-                  onClick={handleExecute}
-                  disabled={isExecuting || executeSuccess}
-                  className={`w-full mt-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    executeSuccess 
-                      ? 'bg-green-600 text-white' 
-                      : isExecuting
-                        ? 'bg-blue-600/50 text-white cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  {executeSuccess ? '✓ Executed in Graph8' : isExecuting ? 'Executing...' : 'Approve & Execute Actions'}
-                </button>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No specific actions recommended yet.</p>
+              <p className="text-[13px] text-secondary">No actions proposed.</p>
             )}
-          </div>
-          
-          {/* REQUIREMENTS SUMMARY */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4">RFP Requirements</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-              {requirements.map((req: any) => (
-                <div key={req.id} className="text-xs p-2 bg-gray-950 rounded border border-gray-800">
-                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] uppercase font-bold mr-2 ${
-                    req.priority === 'critical' ? 'bg-red-900/30 text-red-400' :
-                    req.priority === 'important' ? 'bg-yellow-900/30 text-yellow-400' :
-                    'bg-gray-800 text-gray-400'
-                  }`}>
-                    {req.category}
-                  </span>
-                  <span className="text-gray-300">{req.text}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
         </div>
+
+        {/* Sticky Execute Bar at bottom of rail */}
+        <div className="p-6 border-t border-border-subtle bg-surface-2">
+          <button 
+            onClick={handleExecute}
+            disabled={isExecuting || executeSuccess}
+            className={`w-full py-2 px-4 rounded-md text-[13px] font-medium transition-colors flex items-center justify-center gap-2 ${
+              executeSuccess 
+                ? 'bg-surface-2 border border-border-subtle text-secondary cursor-not-allowed' 
+                : isExecuting
+                  ? 'bg-accent/50 text-white cursor-wait'
+                  : 'bg-accent hover:bg-accent-hover text-white'
+            }`}
+          >
+            {executeSuccess ? (
+              <>✓ Executed in Graph8</>
+            ) : isExecuting ? (
+              'Executing...'
+            ) : (
+              <>Approve & Execute <ArrowRight size={14} /></>
+            )}
+          </button>
+        </div>
       </div>
-      
-      {/* FIXED DEMO BANNER */}
-      <div className="fixed bottom-0 left-0 right-0 bg-blue-900/90 text-blue-100 text-center py-2 text-xs border-t border-blue-500/30 backdrop-blur-sm z-50">
-        <span className="font-bold">PursuitOS Demo Mode</span> — Actions require manual approval before Graph8 execution.
-      </div>
+
+      {/* EVIDENCE DRAWER OVERLAY */}
+      {selectedEvidenceText && (
+        <div className="absolute inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-canvas/40" onClick={() => setSelectedEvidenceText(null)} />
+          <div className="w-full max-w-[480px] h-full bg-surface-2 border-l border-border-subtle shadow-2xl relative z-10 flex flex-col animate-in slide-in-from-right duration-150">
+            <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-surface">
+              <h3 className="text-[14px] font-semibold text-primary">Evidence Details</h3>
+              <button onClick={() => setSelectedEvidenceText(null)} className="text-secondary hover:text-primary">
+                <XCircle size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <div className="text-[11px] font-medium text-secondary uppercase tracking-wider mb-2">Observation</div>
+                <div className="text-[14px] text-primary leading-relaxed bg-surface p-4 border border-border-subtle rounded-md">
+                  {selectedEvidenceText}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] font-medium text-secondary uppercase tracking-wider mb-2">Impact Type</div>
+                <div className="text-[13px] text-secondary leading-relaxed">
+                  {selectedEvidenceType === 'factor' ? 'Positive Factor for Pursuit' : 'Potential Risk / Condition'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

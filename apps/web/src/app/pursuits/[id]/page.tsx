@@ -44,14 +44,7 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
     .orderBy(desc(evidenceEvents.createdAt));
 
   return (
-    <>
-      <div className="bg-black/50 border-b border-gray-800 p-4 sticky top-0 z-10 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex gap-4">
-          <Link href="/pursuits" className="text-gray-400 hover:text-white transition-colors">
-            &larr; Back to Dashboard
-          </Link>
-        </div>
-      </div>
+    <div className="h-full">
       <PursuitScreenClient 
         pursuit={pursuit}
         requirements={requirements}
@@ -59,6 +52,6 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
         reviews={reviews}
         events={events}
       />
-    </>
+    </div>
   );
 }

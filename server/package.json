@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "main": "index.ts",
+  "scripts": {
+    "reset": "tsx --env-file=.env scripts/reset-demo.ts",
+    "seed": "tsx --env-file=.env scripts/seed-demo.ts"
+  },
   "dependencies": {
     "@google/genai": "latest",
     "@graph8/sdk": "latest",
