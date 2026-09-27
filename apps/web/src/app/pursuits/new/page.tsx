@@ -340,12 +340,48 @@ function NewPursuitContent() {
         if (!uploadRes.ok) throw new Error('Failed to parse document requirements');
       }
 
-      // 3. Trigger the synchronous analysis pipeline
+      // 3. Fire the pipeline — server returns 202 immediately, pipeline runs in background
       const analyzeRes = await fetch(`/api/pursuits/${pursuit.id}/analyze`, {
         method: 'POST',
       });
       
-      if (!analyzeRes.ok) throw new Error('Failed to analyze pursuit');
+      if (!analyzeRes.ok) throw new Error('Failed to start analysis');
+
+      // 4. Poll GET /api/pursuits/[id] every 3s until pipeline completes
+      // This avoids the 504 timeout from a long-running synchronous request
+      setActiveStage('Council Deliberating...');
+      const POLL_INTERVAL_MS = 3000;
+      const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5-minute ceiling
+      const pollStart = Date.now();
+
+      await new Promise<void>((resolve, reject) => {
+        const interval = setInterval(async () => {
+          try {
+            if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
+              clearInterval(interval);
+              reject(new Error('Analysis timed out after 5 minutes. Please try again.'));
+              return;
+            }
+
+            const statusRes = await fetch(`/api/pursuits/${pursuit.id}`);
+            if (!statusRes.ok) return; // transient — keep polling
+
+            const data = await statusRes.json();
+            const status = data?.pursuit?.status;
+
+            if (status === 'READY_FOR_REVIEW' || status === 'EXECUTED') {
+              clearInterval(interval);
+              resolve();
+            } else if (status === 'ERROR') {
+              clearInterval(interval);
+              reject(new Error('Pipeline encountered an error. Please check server logs and try again.'));
+            }
+            // Still ANALYZING or CREATED — keep polling
+          } catch (pollErr) {
+            console.warn('[poll] Transient error during status poll:', pollErr);
+          }
+        }, POLL_INTERVAL_MS);
+      });
 
       // Final progress pulse
       setAnalysisProgress(100);
@@ -356,7 +392,7 @@ function NewPursuitContent() {
         sessionStorage.removeItem('pursuitos_new_draft');
       } catch (_) {}
 
-      // 4. Navigate to the Executive Briefing screen
+      // 5. Navigate to the Executive Briefing screen
       setTimeout(() => {
         router.push(`/pursuits/${pursuit.id}`);
       }, 800);
