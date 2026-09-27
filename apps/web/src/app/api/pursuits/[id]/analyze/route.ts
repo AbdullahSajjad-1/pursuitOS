@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { runPursuitPipeline } from '@pursuitos/server/pursuits/pipeline';
 
+export const maxDuration = 60;
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

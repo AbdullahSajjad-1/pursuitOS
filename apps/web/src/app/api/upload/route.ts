@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { processRfpDocument } from '@pursuitos/server/documents/extractor';
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();

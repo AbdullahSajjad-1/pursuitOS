@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createRevivalPursuit } from '@pursuitos/server/pursuits/revival';
 
 export const dynamic = 'force-dynamic';
-
+export const maxDuration = 60;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
