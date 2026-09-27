@@ -49,6 +49,46 @@ export const LOST_DEALS = [
     lossReason: 'Budget allocated to incident response after breach. All discretionary security projects frozen. Our proposal scored highest technically but timing was impossible.',
     closedDate: '2025-09-30T00:00:00.000Z',
     notes: 'Post-breach remediation completed Q4 2025. New board mandate for proactive threat intelligence. CTO indicated willingness to revisit in 2026.'
+  },
+  {
+    companyDomain: 'globex.com',
+    dealName: 'Globex Global Payroll Cloud Migration',
+    amount: 5400000,
+    lossReason: 'Incumbent lock-in. Their existing provider offered a 40% discount on renewal to block us. Executive sponsor lacked political capital to force the switch.',
+    closedDate: '2025-10-12T00:00:00.000Z',
+    notes: 'Incumbent contract expires in 8 months. Their current system suffered a major outage last month affecting EU payroll. Opportunity to re-engage with a phased approach.'
+  },
+  {
+    companyDomain: 'innovatech.io',
+    dealName: 'InnovaTech Distributed Database Scaling',
+    amount: 1850000,
+    lossReason: 'Missing SOC 2 Type II certification at the time. Deal was lost entirely in procurement/infosec review despite engineering team selecting us as vendor of choice.',
+    closedDate: '2025-04-18T00:00:00.000Z',
+    notes: 'We achieved SOC 2 Type II compliance in November 2025. Engineering director (Samir Davis) just reached out on LinkedIn asking for a roadmap update.'
+  },
+  {
+    companyDomain: 'aerosolutions.net',
+    dealName: 'AeroSolutions IoT Edge Analytics Deployment',
+    amount: 4100000,
+    lossReason: 'Product gap: lack of offline caching for intermittent connectivity. Client requires continuous data processing even when disconnected from central cloud.',
+    closedDate: '2025-07-05T00:00:00.000Z',
+    notes: 'Offline Edge Caching capability was released in v3.4 (Q1 2026). Competitor solution is reportedly too heavy for their hardware constraints.'
+  },
+  {
+    companyDomain: 'finserve.group',
+    dealName: 'FinServe Retail Banking CRM Consolidation',
+    amount: 8200000,
+    lossReason: 'Merger and Acquisition pause. Client acquired a regional bank mid-cycle and halted all enterprise software evaluations to assess combined IT architecture.',
+    closedDate: '2025-12-01T00:00:00.000Z',
+    notes: 'M&A integration is complete. They appointed a new Chief Digital Officer tasked with unifying customer data across both banks. Timing is perfect for a re-approach.'
+  },
+  {
+    companyDomain: 'retailcorp.inc',
+    dealName: 'RetailCorp Omnichannel Inventory Sync',
+    amount: 2750000,
+    lossReason: 'Pricing was perceived as 30% above market average. We refused to discount heavily at the end of the quarter. They went with a cheaper, lower-tier competitor.',
+    closedDate: '2025-03-22T00:00:00.000Z',
+    notes: 'The cheaper competitor failed to deliver real-time sync during Black Friday. Client is highly frustrated. Our new modular pricing tiers make us competitive now.'
   }
 ];
 

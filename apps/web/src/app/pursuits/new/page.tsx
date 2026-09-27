@@ -213,7 +213,15 @@ function NewPursuitContent() {
         text: `Retrieved Graph8 CRM intelligence for ${domain}: Verified ${resolvedAccount?.contactsCount || 1} executive contacts and ${resolvedAccount?.dealsCount || 0} historical deals.`
       },
       {
-        delay: 3200,
+        delay: 3500,
+        progress: 45,
+        stage: 'Historical Deal Matching',
+        speaker: 'Intelligence Engine',
+        role: 'system',
+        text: 'Gemini running historical match against previous deals and parsing CRM loss reasons.'
+      },
+      {
+        delay: 5000,
         progress: 50,
         stage: 'Convening 5-Agent Council',
         speaker: 'Council Orchestrator',
@@ -221,60 +229,52 @@ function NewPursuitContent() {
         text: 'Convening autonomous 5-Agent Bid Council in anti-anchored deliberation room.'
       },
       {
-        delay: 4500,
+        delay: 6500,
         progress: 60,
-        stage: 'Technical Architecture Review',
-        speaker: 'Chief Technology Officer',
+        stage: 'Technical Feasibility Review',
+        speaker: 'CTO Agent',
         role: 'cto',
-        text: 'Auditing multi-region architecture, SLA availability covenants, and deployment topology.'
+        text: 'CTO Agent: Auditing multi-region architecture, SLA availability covenants, and technical feasibility parameters.'
       },
       {
-        delay: 6000,
-        progress: 68,
-        stage: 'Technical Architecture Review',
-        speaker: 'Chief Technology Officer',
-        role: 'cto',
-        text: 'Chief Technology Officer: Reviewing dataset migration windows, SLA commitments, and technical feasibility parameters.'
+        delay: 8000,
+        progress: 70,
+        stage: 'Commercial Economics Review',
+        speaker: 'Commercial Agent',
+        role: 'commercial',
+        text: 'Commercial Agent: Reviewing budget posture, ACV potential, margin profile, and contract risk.'
       },
       {
-        delay: 7500,
-        progress: 76,
-        stage: 'Commercial and Sales Review',
-        speaker: 'VP of Sales',
-        role: 'sales',
-        text: 'VP Sales: Budget posture looks viable. Historical deal precedent in Graph8 shows high buyer responsiveness if executive alignment holds.'
+        delay: 9500,
+        progress: 78,
+        stage: 'Executive Alignment Assessment',
+        speaker: 'CEO Agent',
+        role: 'ceo',
+        text: 'CEO Agent: Evaluating strategic fit, brand alignment, and opportunity cost of pursuing this deal.'
       },
       {
-        delay: 9000,
-        progress: 83,
-        stage: 'Legal and Risk Assessment',
-        speaker: 'Chief Legal and Risk Officer',
-        role: 'legal',
-        text: 'Legal: Scanning mandatory data sovereignty clauses. Verifying strict zero-trust compliance and liability limits.'
+        delay: 11000,
+        progress: 85,
+        stage: 'Buying Committee Coverage',
+        speaker: 'Relationship Agent',
+        role: 'relationship',
+        text: 'Relationship Agent: Assessing sponsor strength, champion viability, and historical account relationships.'
       },
       {
-        delay: 10500,
-        progress: 90,
-        stage: 'Operations and Staffing Review',
-        speaker: 'VP of Delivery',
-        role: 'delivery',
-        text: 'Delivery: Required engineering capacity matches current bench availability. Staffing allocation is feasible with 3-week lead time.'
+        delay: 12500,
+        progress: 92,
+        stage: 'Incumbent & Threat Analysis',
+        speaker: 'Competitive Agent',
+        role: 'competitive',
+        text: 'Competitive Agent: Analyzing win rates against suspected incumbents and our differentiation matrix.'
       },
       {
-        delay: 12000,
-        progress: 95,
-        stage: 'Executive Synthesis',
-        speaker: 'Chief Strategy Officer',
-        role: 'cso',
-        text: 'Chief Strategy Officer: Synthesizing reviews across technical feasibility, commercial upside, and risk delta.'
-      },
-      {
-        delay: 13500,
+        delay: 14000,
         progress: 98,
-        stage: 'Communication Strategy',
-        speaker: 'Communication Strategist',
-        role: 'strat',
-        text: 'Communication Strategist: Generating tailored executive phone call script and objection-handling playbook for the primary contact.'
+        stage: 'Final Synthesis',
+        speaker: 'Synthesis Engine',
+        role: 'system',
+        text: 'Synthesizing all 5 agent reviews into final Bid/No-Bid decision and building evidence chain.'
       }
     ];
 

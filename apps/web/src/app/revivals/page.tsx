@@ -53,12 +53,13 @@ export default function RevivalScannerPage() {
     const deal = deals.find(d => d.dealId === analyzingDealId);
 
     const streamEvents = [
-      { delay: 600, progress: 20, stage: 'Ingesting Lost Deal History', speaker: 'Graph8 CRM', role: 'system', text: `Extracted historical deal data for ${deal?.dealName}. Loss reason: ${deal?.lossReason?.substring(0, 50)}...` },
-      { delay: 1800, progress: 35, stage: 'Signal Intelligence Extraction', speaker: 'Data Parser', role: 'system', text: `Evaluating Delta V2 metrics and executive turnover for 'Why Now' justification at ${deal?.companyName}.` },
+      { delay: 600, progress: 20, stage: 'Ingesting Lost Deal History', speaker: 'Graph8 Connector', role: 'system', text: `Extracted historical deal data for ${deal?.dealName}. Loss reason: ${deal?.lossReason?.substring(0, 50)}...` },
+      { delay: 1800, progress: 35, stage: 'Delta V2 Extraction', speaker: 'Intelligence Engine', role: 'system', text: `Evaluating Delta V2 metrics and executive turnover for 'Why Now' justification at ${deal?.companyName}.` },
       { delay: 3500, progress: 50, stage: 'Convening Revival Council', speaker: 'Council Orchestrator', role: 'system', text: 'Convening autonomous 5-Agent Council to debate if historical blockers have been resolved.' },
-      { delay: 5000, progress: 65, stage: 'Technical blocker review', speaker: 'Chief Technology Officer', role: 'cto', text: 'Chief Technology Officer: Analyzing if previous technical limitations or missing integrations have been shipped since we lost the deal.' },
-      { delay: 7000, progress: 75, stage: 'Sales Relationship Check', speaker: 'VP of Sales', role: 'sales', text: 'VP Sales: Checking if the previous detractor left or if our champion gained new budget authority.' },
-      { delay: 9000, progress: 90, stage: 'Synthesizing Revival Strategy', speaker: 'Chief Strategy Officer', role: 'cso', text: 'Chief Strategy Officer: Compiling findings into actionable Re-Pursuit Plan or Watch list recommendation.' }
+      { delay: 5000, progress: 65, stage: 'Technical Blocker Review', speaker: 'CTO Agent', role: 'cto', text: 'CTO Agent: Analyzing if previous technical limitations or missing integrations have been shipped since we lost the deal.' },
+      { delay: 7000, progress: 75, stage: 'Economic Feasibility', speaker: 'Commercial Agent', role: 'commercial', text: 'Commercial Agent: Checking if budget constraints have eased or if pricing structures match current thresholds.' },
+      { delay: 8500, progress: 85, stage: 'Executive & Champion Review', speaker: 'CEO Agent', role: 'ceo', text: 'CEO Agent: Verifying strategic timing and if our previous champions still hold influence.' },
+      { delay: 10000, progress: 95, stage: 'Synthesizing Revival Strategy', speaker: 'Synthesis Engine', role: 'system', text: 'Synthesizing all 5 agent reviews into actionable Re-Pursuit Plan or Watch list recommendation.' }
     ];
 
     const timeouts = streamEvents.map((evt) => {
