@@ -123,11 +123,18 @@ export async function runCouncil(pursuitId: string): Promise<{
     whyNow: bundle.whyNow || null,
   }).returning();
 
-  console.log(`[council] Run ${run.id} — launching 5 agents in parallel...`);
+  console.log(`[council] Run ${run.id} — launching 5 agents with staggered delays (rate-limit safe)...`);
 
-  // Fire all five agents simultaneously (anti-anchoring)
+  // Stagger agents by 1.5s each to avoid Gemini free-tier rate limits.
+  // Still uses Promise.allSettled for anti-anchoring — agents can't see each other.
   const results = await Promise.allSettled(
-    COUNCIL_ROLES.map(role => runAgent(role, bundle)),
+    COUNCIL_ROLES.map(async (role, index) => {
+      // Stagger: agent 0 starts immediately, agent 1 at +1.5s, agent 2 at +3s, etc.
+      if (index > 0) {
+        await new Promise(r => setTimeout(r, index * 1500));
+      }
+      return runAgent(role, bundle);
+    }),
   );
 
   const reviews: CouncilReview[] = [];
