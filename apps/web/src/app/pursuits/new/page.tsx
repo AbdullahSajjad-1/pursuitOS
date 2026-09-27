@@ -347,11 +347,11 @@ function NewPursuitContent() {
       
       if (!analyzeRes.ok) throw new Error('Failed to start analysis');
 
-      // 4. Poll GET /api/pursuits/[id] every 3s until pipeline completes
+      // 4. Poll GET /api/pursuits/[id]/status every 3s until pipeline completes
       // This avoids the 504 timeout from a long-running synchronous request
       setActiveStage('Council Deliberating...');
       const POLL_INTERVAL_MS = 3000;
-      const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5-minute ceiling
+      const POLL_TIMEOUT_MS = 7 * 60 * 1000; // 7-minute ceiling
       const pollStart = Date.now();
 
       await new Promise<void>((resolve, reject) => {
@@ -359,15 +359,16 @@ function NewPursuitContent() {
           try {
             if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
               clearInterval(interval);
-              reject(new Error('Analysis timed out after 5 minutes. Please try again.'));
+              reject(new Error('Analysis timed out after 7 minutes. Please try again.'));
               return;
             }
 
-            const statusRes = await fetch(`/api/pursuits/${pursuit.id}`);
+            // Use the lightweight status-only endpoint
+            const statusRes = await fetch(`/api/pursuits/${pursuit.id}/status`);
             if (!statusRes.ok) return; // transient — keep polling
 
             const data = await statusRes.json();
-            const status = data?.pursuit?.status;
+            const status = data?.status;
 
             // Pipeline is done when status leaves ANALYZING/CREATED
             // Synthesizer sets: BID, NO_BID, CONDITIONAL_BID, WATCH
