@@ -47,82 +47,73 @@ export default function PitchDeck() {
   const router = useRouter();
   const [current, setCurrent] = useState(0);
   const currentRef = useRef(0);
-  const isScrollingRef = useRef(false);
+  const isAnimatingRef = useRef(false);
+  const lastWheelTime = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const slideRefs = useRef<(HTMLElement | null)[]>([]);
 
   const total = SLIDES.length;
 
-  const scrollToSlide = useCallback((index: number) => {
-    if (index < 0 || index >= total) return;
-    const target = slideRefs.current[index];
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
-      setCurrent(index);
-      currentRef.current = index;
-    }
+  const goNext = useCallback(() => {
+    if (currentRef.current >= total - 1) return;
+    isAnimatingRef.current = true;
+    lastWheelTime.current = Date.now();
+    const next = currentRef.current + 1;
+    currentRef.current = next;
+    setCurrent(next);
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 650);
   }, [total]);
 
-  // Track active slide with IntersectionObserver
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const idx = Number(entry.target.getAttribute('data-index'));
-            if (!isNaN(idx)) {
-              setCurrent(idx);
-              currentRef.current = idx;
-            }
-          }
-        }
-      },
-      { threshold: 0.55 }
-    );
-
-    slideRefs.current.forEach((el) => {
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
+  const goPrev = useCallback(() => {
+    if (currentRef.current <= 0) return;
+    isAnimatingRef.current = true;
+    lastWheelTime.current = Date.now();
+    const prev = currentRef.current - 1;
+    currentRef.current = prev;
+    setCurrent(prev);
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 650);
   }, []);
 
-  // One swipe / scroll gesture transitions to next or previous slide
+  const goTo = useCallback((index: number) => {
+    if (index < 0 || index >= total || index === currentRef.current) return;
+    isAnimatingRef.current = true;
+    lastWheelTime.current = Date.now();
+    currentRef.current = index;
+    setCurrent(index);
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 650);
+  }, [total]);
+
+  // One swipe / wheel gesture down transitions to next slide cleanly with zero bounce
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    let wheelTimeout: NodeJS.Timeout | null = null;
-
     const handleWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) < 25) return;
       e.preventDefault();
+      const now = Date.now();
 
-      if (isScrollingRef.current) return;
-      isScrollingRef.current = true;
-
-      if (e.deltaY > 0) {
-        if (currentRef.current < total - 1) {
-          scrollToSlide(currentRef.current + 1);
-        }
-      } else {
-        if (currentRef.current > 0) {
-          scrollToSlide(currentRef.current - 1);
-        }
+      if (Math.abs(e.deltaY) < 18) return;
+      if (isAnimatingRef.current || now - lastWheelTime.current < 650) {
+        return;
       }
 
-      if (wheelTimeout) clearTimeout(wheelTimeout);
-      wheelTimeout = setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 650);
+      if (e.deltaY > 0) {
+        goNext();
+      } else if (e.deltaY < 0) {
+        goPrev();
+      }
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       container.removeEventListener('wheel', handleWheel);
-      if (wheelTimeout) clearTimeout(wheelTimeout);
     };
-  }, [scrollToSlide, total]);
+  }, [goNext, goPrev]);
 
   // Touch swipe support (one swipe down -> next slide)
   useEffect(() => {
@@ -130,17 +121,23 @@ export default function PitchDeck() {
     if (!container) return;
 
     let startY = 0;
+    let startX = 0;
+
     const handleTouchStart = (e: TouchEvent) => {
       startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      if (isAnimatingRef.current) return;
       const diffY = startY - e.changedTouches[0].clientY;
-      if (Math.abs(diffY) > 45) {
-        if (diffY > 0 && currentRef.current < total - 1) {
-          scrollToSlide(currentRef.current + 1);
-        } else if (diffY < 0 && currentRef.current > 0) {
-          scrollToSlide(currentRef.current - 1);
+      const diffX = startX - e.changedTouches[0].clientX;
+
+      if (Math.abs(diffY) > 40 && Math.abs(diffY) > Math.abs(diffX)) {
+        if (diffY > 0) {
+          goNext();
+        } else {
+          goPrev();
         }
       }
     };
@@ -151,30 +148,26 @@ export default function PitchDeck() {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [scrollToSlide, total]);
+  }, [goNext, goPrev]);
 
   // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        if (currentRef.current < total - 1) {
-          scrollToSlide(currentRef.current + 1);
-        }
+        goNext();
       }
       if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        if (currentRef.current > 0) {
-          scrollToSlide(currentRef.current - 1);
-        }
+        goPrev();
       }
       if (e.key === 'Home') {
         e.preventDefault();
-        scrollToSlide(0);
+        goTo(0);
       }
       if (e.key === 'End') {
         e.preventDefault();
-        scrollToSlide(total - 1);
+        goTo(total - 1);
       }
       if (e.key === 'Escape') {
         router.push('/');
@@ -182,13 +175,12 @@ export default function PitchDeck() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [scrollToSlide, total, router]);
+  }, [goNext, goPrev, goTo, total, router]);
 
   return (
     <div
       ref={containerRef}
-      className="relative h-screen w-screen bg-canvas overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth font-sans select-none [&::-webkit-scrollbar]:hidden"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      className="relative h-screen w-screen bg-canvas overflow-hidden font-sans select-none"
     >
       {/* Top Header Bar */}
       <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-md bg-canvas/60">
@@ -222,113 +214,74 @@ export default function PitchDeck() {
         />
       </div>
 
-      {/* Slide 01: Title */}
-      <section
-        ref={(el) => { slideRefs.current[0] = el; }}
-        data-index="0"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      {/* Vertical Transform Slides Container */}
+      <div
+        className="w-full flex flex-col will-change-transform"
+        style={{
+          transform: `translate3d(0, -${current * 100}vh, 0)`,
+          transition: 'transform 600ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
       >
-        <Slide_Title />
-      </section>
+        {/* Slide 01: Title */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Title />
+        </section>
 
-      {/* Slide 02: Problem */}
-      <section
-        ref={(el) => { slideRefs.current[1] = el; }}
-        data-index="1"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Problem />
-      </section>
+        {/* Slide 02: Problem */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Problem />
+        </section>
 
-      {/* Slide 03: The Question */}
-      <section
-        ref={(el) => { slideRefs.current[2] = el; }}
-        data-index="2"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Question />
-      </section>
+        {/* Slide 03: The Question */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Question />
+        </section>
 
-      {/* Slide 04: Solution */}
-      <section
-        ref={(el) => { slideRefs.current[3] = el; }}
-        data-index="3"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Solution />
-      </section>
+        {/* Slide 04: Solution */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Solution />
+        </section>
 
-      {/* Slide 05: Graph8 Foundation */}
-      <section
-        ref={(el) => { slideRefs.current[4] = el; }}
-        data-index="4"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Graph8Foundation />
-      </section>
+        {/* Slide 05: Graph8 Foundation */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Graph8Foundation />
+        </section>
 
-      {/* Slide 06: What the AI Sees */}
-      <section
-        ref={(el) => { slideRefs.current[5] = el; }}
-        data-index="5"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_WhatAISees />
-      </section>
+        {/* Slide 06: What the AI Sees */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_WhatAISees />
+        </section>
 
-      {/* Slide 07: The Council */}
-      <section
-        ref={(el) => { slideRefs.current[6] = el; }}
-        data-index="6"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Council />
-      </section>
+        {/* Slide 07: The Council */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Council />
+        </section>
 
-      {/* Slide 08: The Verdict */}
-      <section
-        ref={(el) => { slideRefs.current[7] = el; }}
-        data-index="7"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Verdict />
-      </section>
+        {/* Slide 08: The Verdict */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Verdict />
+        </section>
 
-      {/* Slide 09: Write-Back */}
-      <section
-        ref={(el) => { slideRefs.current[8] = el; }}
-        data-index="8"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_WriteBack />
-      </section>
+        {/* Slide 09: Write-Back */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_WriteBack />
+        </section>
 
-      {/* Slide 10: Revival Scanner */}
-      <section
-        ref={(el) => { slideRefs.current[9] = el; }}
-        data-index="9"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Revival />
-      </section>
+        {/* Slide 10: Revival Scanner */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Revival />
+        </section>
 
-      {/* Slide 11: Big Picture */}
-      <section
-        ref={(el) => { slideRefs.current[10] = el; }}
-        data-index="10"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_BigPicture />
-      </section>
+        {/* Slide 11: Big Picture */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_BigPicture />
+        </section>
 
-      {/* Slide 12: Closing */}
-      <section
-        ref={(el) => { slideRefs.current[11] = el; }}
-        data-index="11"
-        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
-      >
-        <Slide_Closing />
-      </section>
+        {/* Slide 12: Closing */}
+        <section className="h-screen w-screen flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          <Slide_Closing />
+        </section>
+      </div>
     </div>
   );
 }
@@ -337,7 +290,7 @@ export default function PitchDeck() {
 
 function SlideWrap({ children, center = true }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <div className={`h-full w-full max-w-6xl mx-auto flex flex-col ${center ? 'items-center justify-center' : 'justify-center'} px-8 md:px-16 py-16 relative`}>
+    <div className={`h-full w-full max-w-6xl mx-auto flex flex-col ${center ? 'items-center justify-center' : 'justify-center'} px-8 md:px-16 py-12 relative`}>
       {children}
     </div>
   );
@@ -809,8 +762,8 @@ function Slide_Closing() {
     <SlideWrap>
       <div className="text-center max-w-3xl">
         <div className="flex items-center justify-center gap-2.5 mb-12">
-          <div className="w-8 h-8 rounded-[6px] bg-accent flex-items-center justify-center flex">
-            <Command size={16} className="text-white m-auto" />
+          <div className="w-8 h-8 rounded-[6px] bg-accent flex items-center justify-center">
+            <Command size={16} className="text-white" />
           </div>
           <span className="text-[18px] font-semibold text-primary tracking-tight">PursuitOS</span>
         </div>
