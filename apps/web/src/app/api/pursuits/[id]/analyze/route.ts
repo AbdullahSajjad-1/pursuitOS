@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { runPursuitPipeline } from '@pursuitos/server/pursuits/pipeline';
 import { db } from '@pursuitos/server/db/client';
 import { pursuits } from '@pursuitos/server/db/schema';
@@ -31,10 +32,12 @@ export async function POST(
       return NextResponse.json({ success: true, status: pursuit.status, message: 'Analysis already complete' });
     }
 
-    // Fire the pipeline in the background — do NOT await.
+    // Fire the pipeline in the background using Next.js after() to prevent Vercel suspension
     // The client polls GET /api/pursuits/[id] for status changes.
-    runPursuitPipeline(id).catch((err) => {
-      console.error(`[analyze] Background pipeline failed for ${id}:`, err);
+    after(() => {
+      runPursuitPipeline(id).catch((err) => {
+        console.error(`[analyze] Background pipeline failed for ${id}:`, err);
+      });
     });
 
     // Return 202 Accepted immediately

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { createRevivalPursuit, runRevivalPipeline } from '@pursuitos/server/pursuits/revival';
 
 export const dynamic = 'force-dynamic';
@@ -28,11 +29,13 @@ export async function POST(request: Request) {
 
     if (!result.alreadyExists) {
       // Run the heavy AI pipeline in the background so Vercel does not time out
-      runRevivalPipeline(
-        result.pursuitId, 
-        companyDomain.trim().toLowerCase(), 
-        lossReason || undefined
-      ).catch(console.error);
+      after(() => {
+        runRevivalPipeline(
+          result.pursuitId, 
+          companyDomain.trim().toLowerCase(), 
+          lossReason || undefined
+        ).catch(console.error);
+      });
     }
 
     try {
