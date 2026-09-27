@@ -16,11 +16,33 @@ export const COUNCIL_ROLES: CouncilRole[] = ['commercial', 'cto', 'ceo', 'relati
 
 export interface EvidenceBundle {
   pursuitName: string;
+  pursuitType?: string;
   companyName: string;
   companyDomain: string;
   requirements: Array<{ category: string; priority: string; text: string }>;
-  delta: { then: string; now: string; delta: string };
-  evidenceSummaries: Array<{ id: string; sourceType: string; content: string; confidence: string; freshnessDays: number }>;
+  delta: {
+    then: string;
+    now: string;
+    delta: string;
+    summaryVerdict?: string;
+    resolvedCount?: number;
+    totalCount?: number;
+    blockers?: Array<{
+      blocker: string;
+      thenStatus: string;
+      nowStatus: string;
+      resolved: string;
+    }>;
+  };
+  whyNow?: {
+    whyThisAccount: string;
+    whyThisOpportunity: string;
+    whyNow: Array<{ signal: string; daysAgo: number; impact: string; category: string }>;
+    whyUs: string[];
+    whyNot: string[];
+    synthesisSummary: string;
+  };
+  evidenceSummaries: Array<{ id: string; sourceType: string; content: string; confidence: string; freshnessDays: number; evidenceType?: string; claim?: string; qualityScore?: number }>;
   historicalMatches: Array<{ dealId: string; similarityScore: number; lossReason: string | null }>;
   events: Array<{ title: string; description: string | null; impact: string | null; severity: string | null }>;
 }
@@ -32,12 +54,12 @@ export interface EvidenceBundle {
 import { getFormattedCompanyProfile } from '../company/profile';
 
 function formatContext(bundle: EvidenceBundle): string {
-  const reqBlock = bundle.requirements
-    .map(r => `  • [${r.category.toUpperCase()}] (${r.priority}): ${r.text}`)
-    .join('\n');
+  const reqBlock = bundle.requirements.length > 0
+    ? bundle.requirements.map(r => `  • [${r.category.toUpperCase()}] (${r.priority}): ${r.text}`).join('\n')
+    : '  Scope derived from historical engagement re-pursuit & CRM account intelligence.';
 
   const evidenceBlock = bundle.evidenceSummaries
-    .map(e => `  • [${e.sourceType.toUpperCase()}] (${e.confidence} confidence, ${e.freshnessDays}d freshness): ${e.content.substring(0, 300)}`)
+    .map(e => `  • [${(e.evidenceType || e.sourceType).toUpperCase()}] (Score: ${e.qualityScore ?? 75}/100, ${e.confidence} conf, ${e.freshnessDays}d): ${e.claim || e.content.substring(0, 250)}`)
     .join('\n');
 
   const historyBlock = bundle.historicalMatches.length > 0
@@ -48,24 +70,51 @@ function formatContext(bundle: EvidenceBundle): string {
     ? bundle.events.map(e => `  • [${(e.severity || 'UNKNOWN').toUpperCase()}] ${e.title}: ${e.description || ''} (Impact: ${e.impact || 'unknown'})`).join('\n')
     : '  No material events detected.';
 
+  let blockersBlock = '';
+  if (bundle.delta.blockers && bundle.delta.blockers.length > 0) {
+    blockersBlock = `
+── HISTORICAL BLOCKER RESOLUTION (THEN/NOW/DELTA v2) ──
+Metric: ${bundle.delta.summaryVerdict || `${bundle.delta.resolvedCount ?? 0} of ${bundle.delta.totalCount ?? 0} blockers resolved`}
+${bundle.delta.blockers.map(b => `  • [${b.resolved.toUpperCase()}] Blocker: "${b.blocker}"
+    THEN: ${b.thenStatus}
+    NOW:  ${b.nowStatus}`).join('\n')}
+`;
+  }
+
+  let whyNowBlock = '';
+  if (bundle.whyNow) {
+    whyNowBlock = `
+── "WHY NOW?" STRATEGIC TIMING ASSESSMENT ──
+Account Thesis: ${bundle.whyNow.whyThisAccount}
+Opportunity Fit: ${bundle.whyNow.whyThisOpportunity}
+Timing Catalysts:
+${bundle.whyNow.whyNow.map(s => `  • [${s.category.toUpperCase()} - ${s.impact.toUpperCase()}] ${s.signal} (${s.daysAgo} days ago)`).join('\n')}
+Differentiators (Why Us):
+${bundle.whyNow.whyUs.map(u => `  ✓ ${u}`).join('\n')}
+Internal Risks / Doubts (Why Not):
+${bundle.whyNow.whyNot.map(n => `  ⚠️ ${n}`).join('\n')}
+Catalyst Summary: ${bundle.whyNow.synthesisSummary}
+`;
+  }
+
   return `
 ═══════════════════════════════════════════════════════════
-PURSUIT: ${bundle.pursuitName}
+PURSUIT: ${bundle.pursuitName} [TYPE: ${bundle.pursuitType || 'NEW'}]
 PROSPECT / BUYER: ${bundle.companyName} (${bundle.companyDomain})
 ═══════════════════════════════════════════════════════════
 
 ── OUR BIDDING ORGANIZATION (CORE CAPABILITIES & TECH STACK) ──
 ${getFormattedCompanyProfile()}
 
-── RFP REQUIREMENTS ──
+── RFP / SCOPE REQUIREMENTS ──
 ${reqBlock}
-
-── HISTORICAL CONTEXT (THEN → NOW → DELTA) ──
+${whyNowBlock}${blockersBlock}
+── OVERALL DELTA SYNTHESIS ──
 THEN: ${bundle.delta.then}
 NOW:  ${bundle.delta.now}
 DELTA: ${bundle.delta.delta}
 
-── GRAPH8 EVIDENCE ──
+── GRAPH8 EVIDENCE & QUALITY SIGNALS ──
 ${evidenceBlock}
 
 ── HISTORICAL DEAL MATCHES ──
@@ -188,7 +237,7 @@ export function getCouncilPrompt(role: CouncilRole, bundle: EvidenceBundle): { s
 
 ${context}
 
-Respond with your structured review. Your recommendation must be one of: bid, no_bid, or conditional_bid.
+Respond with your structured review. Your recommendation must be one of: bid, no_bid, conditional_bid, or watch (use watch if the account is high value but requires monitoring for a specific catalyst).
 Your confidence must be one of: low, medium, or high.
 Your score must be 0-100.
 Reference actual evidence facts and context. Do NOT include raw database UUIDs in human-facing text.`,

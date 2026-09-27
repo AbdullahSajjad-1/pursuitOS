@@ -234,7 +234,7 @@ function NewPursuitContent() {
         stage: 'Technical Architecture Review',
         speaker: 'Chief Technology Officer',
         role: 'cto',
-        text: 'CTO feels weird on this: 15-minute cutover window on the migration dataset is extremely aggressive. Checking historical outage penalties and rollback tolerances.'
+        text: 'Chief Technology Officer: Reviewing dataset migration windows, SLA commitments, and technical feasibility parameters.'
       },
       {
         delay: 7500,

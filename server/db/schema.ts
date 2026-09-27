@@ -5,9 +5,12 @@ export const pursuits = pgTable('pursuits', {
   name: text('name').notNull(),
   companyId: text('company_id'),
   companyDomain: text('company_domain'),
-  status: text('status').notNull().default('DRAFT'), // DRAFT, ANALYZING, READY_FOR_REVIEW, BID, NO_BID, CONDITIONAL_BID
+  status: text('status').notNull().default('DRAFT'), // DRAFT, ANALYZING, READY_FOR_REVIEW, BID, NO_BID, CONDITIONAL_BID, EXECUTED, DENIED, WATCH
   bidConfidence: text('bid_confidence'), // low, medium, high
   dealId: text('deal_id'), // Graph8 Deal ID
+  pursuitType: text('pursuit_type').default('NEW'), // NEW, REVIVAL
+  sourceDealId: text('source_deal_id'), // Graph8 Deal ID that triggered revival
+  whyNow: jsonb('why_now'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -41,6 +44,9 @@ export const evidence = pgTable('evidence', {
   content: text('content').notNull(),
   confidence: text('confidence'),
   freshnessDays: integer('freshness_days'),
+  evidenceType: text('evidence_type'), // executive_change, intent_signal, relationship_coverage, historical_precedent, hiring_wave, budget_change, etc.
+  qualityScore: integer('quality_score'), // 0-100
+  claim: text('claim'), // Human-readable assertion
   retrievedAt: timestamp('retrieved_at').defaultNow().notNull(),
   observedAt: timestamp('observed_at'),
 });
@@ -69,11 +75,12 @@ export const councilRuns = pgTable('council_runs', {
   id: uuid('id').defaultRandom().primaryKey(),
   pursuitId: uuid('pursuit_id').references(() => pursuits.id).notNull(),
   status: text('status').notNull().default('RUNNING'), // RUNNING, COMPLETED, ERROR
-  decision: text('decision'), // bid, no_bid, conditional_bid
+  decision: text('decision'), // bid, no_bid, conditional_bid, watch
   confidence: text('confidence'),
   synthesisRationale: text('synthesis_rationale'),
   recommendedAction: text('recommended_action'),
   communicationStrategy: jsonb('communication_strategy'),
+  whyNow: jsonb('why_now'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

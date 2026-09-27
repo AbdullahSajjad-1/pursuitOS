@@ -11,13 +11,14 @@ import { GoogleGenAI } from '@google/genai';
 // Role → model mapping
 // ---------------------------------------------------------------------------
 
-export type ModelRole = 'extraction' | 'council' | 'synthesis' | 'classification';
+export type ModelRole = 'extraction' | 'council' | 'synthesis' | 'classification' | 'why_now';
 
 const MODEL_MAP: Record<ModelRole, string> = {
   extraction:     'gemini-3.5-flash-lite',   // fast, cheap — good for parsing
   council:        'gemini-3.5-flash-lite',   // reasoning — ideally a stronger model
   synthesis:      'gemini-3.5-flash-lite',   // strongest available for final decision
   classification: 'gemini-3.5-flash-lite',   // lightweight classification tasks
+  why_now:        'gemini-3.5-flash-lite',   // strategic timing catalyst engine
 };
 
 export function getModelForRole(role: ModelRole): string {

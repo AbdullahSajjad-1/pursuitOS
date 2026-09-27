@@ -26,6 +26,9 @@ export interface Deal {
   isWon: boolean;
   isClosed: boolean;
   createdAt: string;
+  closeDate?: string;
+  stageId?: string;
+  stageName?: string;
 }
 
 export interface Activity {

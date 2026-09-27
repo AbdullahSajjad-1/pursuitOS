@@ -31,15 +31,31 @@ export async function buildEvidenceBundle(pursuitId: string): Promise<EvidenceBu
   const { buildDelta } = await import('../intelligence/delta');
   const delta = await buildDelta(pursuitId);
 
+  // Retrieve or compute Why Now strategic analysis
+  let whyNowData = pursuit.whyNow as any;
+  if (!whyNowData) {
+    try {
+      const { buildWhyNow } = await import('../intelligence/why_now');
+      whyNowData = await buildWhyNow(pursuitId);
+    } catch (whyNowErr) {
+      console.warn('[runner] Could not build whyNow on the fly:', whyNowErr);
+    }
+  }
+
   return {
     pursuitName: pursuit.name,
+    pursuitType: pursuit.pursuitType || 'NEW',
     companyName: pursuit.companyDomain || 'Unknown Company',
     companyDomain: pursuit.companyDomain || 'unknown.com',
     requirements: reqs.map(r => ({ category: r.category, priority: r.priority, text: r.text })),
     delta,
+    whyNow: whyNowData,
     evidenceSummaries: evRecords.map(e => ({
       id: e.id,
       sourceType: e.sourceType,
+      evidenceType: e.evidenceType || undefined,
+      claim: e.claim || undefined,
+      qualityScore: e.qualityScore || undefined,
       content: e.content,
       confidence: e.confidence || 'medium',
       freshnessDays: e.freshnessDays || 0,
@@ -104,6 +120,7 @@ export async function runCouncil(pursuitId: string): Promise<{
   const [run] = await db.insert(councilRuns).values({
     pursuitId,
     status: 'RUNNING',
+    whyNow: bundle.whyNow || null,
   }).returning();
 
   console.log(`[council] Run ${run.id} — launching 5 agents in parallel...`);

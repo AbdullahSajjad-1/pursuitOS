@@ -45,6 +45,37 @@ export const getDeals = async (companyId: string): Promise<Deal[]> => {
   }));
 };
 
+export const getAllDeals = async (filters?: { stage_id?: string; stage?: string; limit?: number }): Promise<Deal[]> => {
+  const params: any = {};
+  if (filters?.stage_id) params.stage_id = filters.stage_id;
+  if (filters?.limit) params.limit = filters.limit;
+  const result = await g8.deals.list(params);
+  return (result.data || []).map((d: any) => ({
+    id: String(d.id || d.deal_id || ''),
+    companyId: String(d.company_id || d.companyId || ''),
+    name: d.name || '',
+    amount: Number(d.amount) || 0,
+    stage: d.stage_name || d.stage || '',
+    stageId: d.stage_id || '',
+    stageName: d.stage_name || '',
+    closeDate: d.close_date || '',
+    isWon: d.stage_name === 'Closed Won' || d.stage === 'won',
+    isClosed: d.stage_name === 'Closed Won' || d.stage_name === 'Closed Lost' || d.stage === 'won' || d.stage === 'lost',
+    createdAt: d.created_at || ''
+  }));
+};
+
+export const getDealNotes = async (dealId: string): Promise<Note[]> => {
+  const result = await g8.notes.listForDeal(dealId);
+  return (result.data || []).map((n: any) => ({
+    id: n.id,
+    entityType: 'deal' as const,
+    entityId: dealId,
+    content: n.content || '',
+    createdAt: n.created_at || ''
+  }));
+};
+
 // Removed getDealContacts since the SDK doesn't natively expose getContacts directly under deals
 
 export const getActivities = async (companyId: string): Promise<Activity[]> => {

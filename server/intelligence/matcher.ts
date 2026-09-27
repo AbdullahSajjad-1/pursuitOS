@@ -1,5 +1,5 @@
 import { db } from '../db/client';
-import { opportunityRequirements, evidence, historicalMatches } from '../db/schema';
+import { opportunityRequirements, evidence, historicalMatches, pursuits } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { GoogleGenAI, Type } from '@google/genai';
 import * as dotenv from 'dotenv';
@@ -22,15 +22,10 @@ const MatcherSchema = {
 };
 
 export async function matchHistoricalDeals(pursuitId: string) {
-  // 1. Fetch current opportunity requirements
+  // 1. Fetch current opportunity requirements and pursuit details
+  const [pursuit] = await db.select().from(pursuits).where(eq(pursuits.id, pursuitId));
   const reqs = await db.select().from(opportunityRequirements).where(eq(opportunityRequirements.pursuitId, pursuitId));
-  if (reqs.length === 0) {
-    await db.delete(historicalMatches).where(eq(historicalMatches.pursuitId, pursuitId));
-    return 0;
-  }
   
-  const reqsSummary = reqs.map(r => `[${r.category}] ${r.priority}: ${r.text}`).join('\n');
-
   // 2. Fetch historical deals from evidence
   const dealEvidences = await db.select()
     .from(evidence)
@@ -41,11 +36,33 @@ export async function matchHistoricalDeals(pursuitId: string) {
     return 0;
   }
 
-  // We also might want to fetch notes tied to these deals to understand why they were lost
-  // For MVP, the deal object itself might have enough context, or we just pass the deals to the LLM
+  // Fetch deal notes / loss reasons from evidence
+  const noteEvidences = await db.select()
+    .from(evidence)
+    .where(and(eq(evidence.pursuitId, pursuitId), eq(evidence.sourceType, 'note')));
+
+  const notesMap = new Map<string, string[]>();
+  for (const n of noteEvidences) {
+    try {
+      const parsed = JSON.parse(n.content);
+      const entityId = parsed.entityId || n.sourceId;
+      const text = parsed.content || n.content;
+      if (entityId) {
+        if (!notesMap.has(entityId)) notesMap.set(entityId, []);
+        notesMap.get(entityId)!.push(text);
+      }
+    } catch (_) {}
+  }
+
+  const reqsSummary = reqs.length > 0 
+    ? reqs.map(r => `[${r.category}] ${r.priority}: ${r.text}`).join('\n')
+    : `Scope: Strategic Re-Pursuit & Revival of engagement for ${pursuit?.name || 'Account'}. Evaluate historical blockers, loss reasons, and technical fit.`;
+
   const dealsJson = dealEvidences.map(d => {
     const dealData = JSON.parse(d.content);
-    return `Deal ID: ${dealData.id} | Name: ${dealData.name} | Stage: ${dealData.stage} | Status: ${dealData.isClosed ? (dealData.isWon ? 'Won' : 'Lost') : 'Open'}`;
+    const relatedNotes = notesMap.get(dealData.id) || [];
+    const notesStr = relatedNotes.length > 0 ? ` | Notes & Loss Reasons: ${relatedNotes.join('; ')}` : '';
+    return `Deal ID: ${dealData.id} | Name: ${dealData.name} | Stage: ${dealData.stage} | Status: ${dealData.isClosed ? (dealData.isWon ? 'Won' : 'Lost') : 'Open'}${notesStr}`;
   }).join('\n');
 
   // 3. Ask Gemini to score them

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { db } from '@pursuitos/server/db/client';
 import { pursuits } from '@pursuitos/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter, Eye, Sparkles } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +34,12 @@ export default async function PursuitsDashboard() {
         return (
           <span className="flex items-center gap-1.5 text-conditional text-[12px] font-medium">
             <div className="w-1.5 h-1.5 rounded-full bg-conditional" /> Conditional Bid
+          </span>
+        );
+      case 'WATCH':
+        return (
+          <span className="flex items-center gap-1.5 text-amber-400 text-[12px] font-medium">
+            <Eye size={13} className="text-amber-400" /> Watch Monitor
           </span>
         );
       case 'NO_BID':
@@ -75,12 +81,21 @@ export default async function PursuitsDashboard() {
       <header className="px-8 py-6 border-b border-border-subtle bg-canvas">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-[22px] font-semibold tracking-tight text-primary">Pursuits</h1>
-          <Link 
-            href="/pursuits/new" 
-            className="bg-primary text-canvas hover:bg-white px-4 py-2 rounded-md text-[13px] font-medium transition-colors"
-          >
-            New pursuit
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/revivals" 
+              className="flex items-center gap-2 bg-surface-2 hover:bg-surface-3 border border-border-subtle text-primary px-3.5 py-2 rounded-md text-[13px] font-medium transition-colors"
+            >
+              <Sparkles size={14} className="text-accent" />
+              Revival Scanner
+            </Link>
+            <Link 
+              href="/pursuits/new" 
+              className="bg-primary text-canvas hover:bg-white px-4 py-2 rounded-md text-[13px] font-medium transition-colors"
+            >
+              New pursuit
+            </Link>
+          </div>
         </div>
         
         {/* Filters Bar Mock */}
@@ -137,7 +152,14 @@ export default async function PursuitsDashboard() {
                   {/* We make the whole row clickable via an absolute link inside the first cell */}
                   <td className="py-3 pl-8 pr-4 text-[13px] text-primary font-medium">
                     <Link href={`/pursuits/${pursuit.id}`} className="absolute inset-0 z-0 focus:outline-none" aria-label={`View ${pursuit.name}`}></Link>
-                    <span className="relative z-10">{pursuit.name}</span>
+                    <div className="relative z-10 flex items-center gap-2">
+                      <span>{pursuit.name}</span>
+                      {pursuit.pursuitType === 'REVIVAL' && (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/25 flex-shrink-0">
+                          Revival
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-[13px] text-secondary relative z-10">
                     {pursuit.companyDomain || '—'}

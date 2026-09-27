@@ -9,7 +9,8 @@ import {
   Activity, 
   Files, 
   Settings,
-  Command
+  Command,
+  Sparkles
 } from 'lucide-react';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -47,9 +48,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div>
             <div className="px-3 mb-2 text-[11px] font-medium text-disabled uppercase tracking-wider">Workspace</div>
             <div className="space-y-0.5">
-              <Link href="/pursuits" className={`flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors ${isNavActive('/pursuits') ? 'bg-surface-3 text-primary font-medium' : 'text-secondary hover:text-primary hover:bg-surface-2'}`}>
+              <Link href="/pursuits" className={`flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors ${isNavActive('/pursuits') && !isNavActive('/revivals') ? 'bg-surface-3 text-primary font-medium' : 'text-secondary hover:text-primary hover:bg-surface-2'}`}>
                 <Briefcase size={16} />
                 Pursuits
+              </Link>
+              <Link href="/revivals" className={`flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-colors ${isNavActive('/revivals') ? 'bg-surface-3 text-accent font-medium' : 'text-secondary hover:text-primary hover:bg-surface-2'}`}>
+                <Sparkles size={16} className="text-accent" />
+                Revival Scanner
               </Link>
               <Link href="#" className="flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] text-secondary hover:text-primary hover:bg-surface-2 transition-colors">
                 <Building2 size={16} />

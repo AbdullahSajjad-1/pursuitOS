@@ -1,5 +1,5 @@
 import { db } from '@pursuitos/server/db/client';
-import { pursuits, opportunityRequirements, councilRuns, councilReviews, evidenceEvents } from '@pursuitos/server/db/schema';
+import { pursuits, opportunityRequirements, councilRuns, councilReviews, evidenceEvents, evidence } from '@pursuitos/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import PursuitScreenClient from '../../../components/PursuitScreen';
@@ -34,7 +34,7 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
       confidence: latestRun.confidence,
       rationale: latestRun.synthesisRationale,
       recommendedAction: latestRun.recommendedAction,
-      conditions: [] // We'd ideally parse conditions from a structured JSON if stored
+      conditions: []
     };
     strategy = latestRun.communicationStrategy;
 
@@ -44,6 +44,19 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
   const events = await db.select().from(evidenceEvents)
     .where(eq(evidenceEvents.pursuitId, id))
     .orderBy(desc(evidenceEvents.createdAt));
+
+  const evidenceRecords = await db.select().from(evidence)
+    .where(eq(evidence.pursuitId, id));
+
+  // Fetch Delta v2
+  const { buildDelta } = await import('@pursuitos/server/intelligence/delta');
+  const delta = await buildDelta(id).catch(() => null);
+
+  // Fetch Buying Committee
+  const { buildBuyingCommittee } = await import('@pursuitos/server/graph8/dossier');
+  const committee = pursuit.companyId ? await buildBuyingCommittee(pursuit.companyId).catch(() => []) : [];
+
+  const whyNow = pursuit.whyNow || (runs[0]?.whyNow as any) || null;
 
   const { calculateBidPricing } = await import('@pursuitos/server/commercial/pricing');
   const pricing = calculateBidPricing({
@@ -61,6 +74,10 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
         reviews={reviews}
         events={events}
         pricing={pricing}
+        evidenceList={evidenceRecords}
+        whyNow={whyNow}
+        delta={delta}
+        committee={committee}
       />
     </div>
   );

@@ -7,7 +7,7 @@ import { OUR_COMPANY } from '../company/profile';
 import { getAI, getModelForRole, withRetry } from '../ai/router';
 import { calculateBidPricing } from '../commercial/pricing';
 
-export async function executePursuitDecision(pursuitId: string, actor: string = 'human') {
+export async function executePursuitDecision(pursuitId: string, actor: string = 'human', overrideBidAmount?: number) {
   try {
     console.log(`[execution] Starting execution write-back for pursuit ${pursuitId}`);
 
@@ -47,16 +47,29 @@ export async function executePursuitDecision(pursuitId: string, actor: string = 
     decision: run.decision || 'bid'
   });
 
+  if (overrideBidAmount !== undefined) {
+    pricing.targetBidAmount = overrideBidAmount;
+  }
+
   console.log(`[execution] Calculated Target Bid: $${pricing.targetBidAmount.toLocaleString()} USD (Client Budget: ${pricing.clientBudget ? '$' + pricing.clientBudget.toLocaleString() : 'Not Specified'})`);
 
   // 2. Create or Update Deal with calculated amount
   console.log(`[execution] Creating/Updating deal in Graph8...`);
+  let targetStage = 'proposal';
+  if (run.decision === 'no_bid') {
+    targetStage = 'closed_lost';
+  } else if (run.decision === 'watch') {
+    targetStage = 'nurture';
+  } else if (pursuit.pursuitType === 'REVIVAL') {
+    targetStage = 'discovery_held';
+  }
+
   const deal = await writer.createOrUpdateDeal(ctx, {
-    dealId: pursuit.dealId || undefined,
+    dealId: (pursuit.pursuitType === 'REVIVAL' ? undefined : pursuit.dealId) || undefined,
     companyId: pursuit.companyId,
     name: pursuit.name,
     amount: pricing.targetBidAmount,
-    stage: run.decision === 'no_bid' ? 'closed_lost' : 'proposal'
+    stage: targetStage
   });
   const dealId = deal.id;
 

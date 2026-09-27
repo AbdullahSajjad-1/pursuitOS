@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle2, AlertTriangle, ArrowRight, XCircle, Info, ChevronRight, Check, Phone, Mail, Mic, ShieldCheck, Copy, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ArrowRight, XCircle, Info, ChevronRight, Check, Phone, Mail, Mic, ShieldCheck, Copy, ArrowLeft, Edit2 } from 'lucide-react';
 
 export default function PursuitScreenClient({ 
   pursuit, requirements, synthesis, strategy, reviews, events, pricing 
@@ -22,6 +22,15 @@ export default function PursuitScreenClient({
   } : null);
   const [copiedLetter, setCopiedLetter] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [isEditingBid, setIsEditingBid] = useState(false);
+  const [editedBidAmount, setEditedBidAmount] = useState(pricing?.targetBidAmount || 0);
+  const [milestoneRatios, setMilestoneRatios] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (pricing?.milestones && pricing.targetBidAmount) {
+      setMilestoneRatios(pricing.milestones.map((m: any) => m.amount / pricing.targetBidAmount));
+    }
+  }, [pricing]);
 
   // Derived state guaranteeing consistent disabled/completed state
   const isExecuted = executeSuccess || isAlreadyExecuted || pursuit?.status === 'EXECUTED';
@@ -68,7 +77,11 @@ export default function PursuitScreenClient({
     if (isExecuted) return;
     setIsExecuting(true);
     try {
-      const res = await fetch(`/api/pursuits/${pursuit.id}/execute`, { method: 'POST' });
+      const res = await fetch(`/api/pursuits/${pursuit.id}/execute`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overrideBidAmount: editedBidAmount !== pricing?.targetBidAmount ? editedBidAmount : undefined })
+      });
       if (!res.ok) throw new Error('Execution failed');
       const data = await res.json();
       setExecuteSuccess(true);
@@ -220,9 +233,27 @@ export default function PursuitScreenClient({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="p-4 rounded-md border border-border-subtle bg-surface/30">
                 <div className="text-[11px] uppercase tracking-wider text-muted font-medium mb-1">Target Bid Proposal</div>
-                <div className="text-[24px] font-bold text-primary font-mono">
-                  ${pricing.targetBidAmount ? pricing.targetBidAmount.toLocaleString() : '0'} <span className="text-[13px] font-normal text-secondary font-sans">USD</span>
-                </div>
+                {isEditingBid ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-secondary font-mono text-[20px]">$</span>
+                    <input 
+                      type="number"
+                      value={editedBidAmount}
+                      onChange={(e) => setEditedBidAmount(Number(e.target.value))}
+                      className="bg-surface-2 border border-accent rounded px-2 py-1 text-[20px] font-mono text-primary outline-none w-full max-w-[150px]"
+                    />
+                    <button onClick={() => setIsEditingBid(false)} className="text-[12px] bg-accent text-white px-3 py-1.5 rounded-md hover:bg-accent-hover">Save</button>
+                  </div>
+                ) : (
+                  <div className="text-[24px] font-bold text-primary font-mono flex items-center gap-2">
+                    ${editedBidAmount ? editedBidAmount.toLocaleString() : '0'} <span className="text-[13px] font-normal text-secondary font-sans">USD</span>
+                    {!isExecuted && !isDenied && (
+                      <button onClick={() => setIsEditingBid(true)} className="text-secondary hover:text-accent transition-colors ml-1 focus:outline-none" title="Edit Bid Amount">
+                        <Edit2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="text-[12px] text-bid mt-1 font-medium">
                   {pricing.clientBudget ? `${pricing.discountPercentage}% headroom below client ceiling` : 'Engineered for optimal competitive positioning'}
                 </div>
@@ -249,21 +280,54 @@ export default function PursuitScreenClient({
 
             {pricing.milestones && pricing.milestones.length > 0 && (
               <div className="border border-border-subtle rounded-md overflow-hidden bg-surface/20">
-                <div className="px-4 py-2 bg-surface/60 border-b border-border-subtle text-[11px] font-semibold uppercase tracking-wider text-secondary">
-                  Proposed Milestone Delivery Schedule
+                <div className="px-4 py-2 bg-surface/60 border-b border-border-subtle flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-secondary">
+                    Proposed Milestone Delivery Schedule
+                  </span>
+                  {isEditingBid && (
+                    <span className={`text-[11px] font-mono font-bold ${Math.round(milestoneRatios.reduce((a, b) => a + b, 0) * 100) === 100 ? 'text-bid' : 'text-nobid'}`}>
+                      Sum: {Math.round(milestoneRatios.reduce((a, b) => a + b, 0) * 100)}%
+                    </span>
+                  )}
                 </div>
                 <div className="divide-y divide-border-subtle">
-                  {pricing.milestones.map((m: any, idx: number) => (
-                    <div key={idx} className="px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[12px]">
-                      <div>
-                        <span className="font-medium text-primary">{m.name}</span>
-                        <p className="text-[11px] text-muted">{m.description}</p>
+                  {pricing.milestones.map((m: any, idx: number) => {
+                    const ratio = milestoneRatios[idx] ?? (pricing.targetBidAmount ? m.amount / pricing.targetBidAmount : 0);
+                    const dynamicAmount = Math.round(editedBidAmount * ratio);
+                    return (
+                      <div key={idx} className="px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[12px]">
+                        <div className="flex-1">
+                          <span className="font-medium text-primary">{m.name}</span>
+                          <p className="text-[11px] text-muted">{m.description}</p>
+                        </div>
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          {isEditingBid ? (
+                            <div className="flex items-center gap-1 bg-surface border border-accent rounded px-2 py-0.5 shadow-sm">
+                              <input 
+                                type="number" 
+                                min={0} max={100} 
+                                value={Math.round(ratio * 100)} 
+                                onChange={(e) => {
+                                  const newRatios = [...milestoneRatios];
+                                  newRatios[idx] = Number(e.target.value) / 100;
+                                  setMilestoneRatios(newRatios);
+                                }}
+                                className="w-10 bg-transparent text-right font-mono text-primary outline-none"
+                              />
+                              <span className="text-secondary">%</span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-secondary font-mono bg-surface-2 px-2 py-0.5 rounded border border-border-subtle">
+                              {Math.round(ratio * 100)}%
+                            </span>
+                          )}
+                          <span className="font-mono font-semibold text-primary sm:text-right min-w-[90px]">
+                            ${dynamicAmount.toLocaleString()} USD
+                          </span>
+                        </div>
                       </div>
-                      <span className="font-mono font-semibold text-primary sm:text-right flex-shrink-0">
-                        ${m.amount.toLocaleString()} USD
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

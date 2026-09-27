@@ -88,7 +88,7 @@ export async function synthesize(
   const raw = JSON.parse(response.text || '{}');
 
   const result: SynthesisResult = {
-    decision: raw.decision && ['bid', 'no_bid', 'conditional_bid'].includes(raw.decision) ? raw.decision : 'no_bid',
+    decision: raw.decision && ['bid', 'no_bid', 'conditional_bid', 'watch'].includes(raw.decision) ? raw.decision : 'no_bid',
     confidence: raw.confidence || 'medium',
     rationale: raw.rationale || '',
     key_strengths: raw.key_strengths || [],
@@ -127,6 +127,7 @@ async function persistDecision(pursuitId: string, runId: string, result: Synthes
     bid: 'BID',
     no_bid: 'NO_BID',
     conditional_bid: 'CONDITIONAL_BID',
+    watch: 'WATCH',
   };
 
   await db.update(pursuits).set({

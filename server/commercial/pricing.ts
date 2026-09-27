@@ -21,10 +21,16 @@ export interface PricingResult {
 }
 
 export function extractBudgetFromText(text: string): number | null {
-  const match = text.match(/(?:Estimated Contract Value|Contract Value|Estimated Budget|Budget Ceiling|Budget)[\s:]+\$?([0-9,]+(?:\.[0-9]{2})?)\s*(USD)?/i);
+  const match = text.match(/(?:Estimated Contract Value|Contract Value|Estimated Budget|Budget Ceiling|Budget)(?:\s*(?:is|was|of|around|approximately|up to|exceeding|:|=)*\s*)*\$?([0-9,]+(?:\.[0-9]+)?)\s*(million|m|k|billion|b)?\s*(USD)?/i);
   if (match) {
-    const val = parseInt(match[1].replace(/,/g, ''), 10);
-    if (!isNaN(val) && val > 0) return val;
+    let val = parseFloat(match[1].replace(/,/g, ''));
+    if (!isNaN(val) && val > 0) {
+      const multiplier = match[2]?.toLowerCase();
+      if (multiplier === 'million' || multiplier === 'm') val *= 1000000;
+      else if (multiplier === 'k') val *= 1000;
+      else if (multiplier === 'billion' || multiplier === 'b') val *= 1000000000;
+      return Math.round(val);
+    }
   }
   return null;
 }

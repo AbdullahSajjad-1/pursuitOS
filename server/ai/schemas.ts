@@ -49,8 +49,8 @@ export const CouncilReviewSchema = {
     },
     recommendation: {
       type: Type.STRING,
-      description: "One of: bid, no_bid, conditional_bid",
-      enum: ["bid", "no_bid", "conditional_bid"]
+      description: "One of: bid, no_bid, conditional_bid, watch",
+      enum: ["bid", "no_bid", "conditional_bid", "watch"]
     },
     confidence: {
       type: Type.STRING,
@@ -77,8 +77,8 @@ export const SynthesisSchema = {
   properties: {
     decision: {
       type: Type.STRING,
-      description: "Final recommendation: bid, no_bid, or conditional_bid",
-      enum: ["bid", "no_bid", "conditional_bid"]
+      description: "Final recommendation: bid, no_bid, conditional_bid, or watch",
+      enum: ["bid", "no_bid", "conditional_bid", "watch"]
     },
     confidence: {
       type: Type.STRING,

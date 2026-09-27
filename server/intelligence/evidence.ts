@@ -3,6 +3,7 @@ import { evidence, evidenceEvents, pursuits } from '../db/schema';
 import * as reader from '../graph8/reader'; // In production, we could inject this dependency
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { assessEvidenceRecord } from './quality';
 
 export async function collectEvidence(pursuitId: string, companyDomain: string) {
   // 1. Resolve company in Graph8
@@ -103,19 +104,35 @@ export async function collectEvidence(pursuitId: string, companyDomain: string) 
     });
   });
 
-  // Historical Deals evidence
-  deals.forEach(deal => {
+  // Historical Deals evidence and deal notes
+  for (const deal of deals) {
     evidenceRecords.push({
       pursuitId,
       source: 'graph8',
       sourceType: 'deal',
       sourceId: deal.id,
       content: JSON.stringify(deal),
-      confidence: 'high',
-      freshnessDays: 30, // Mock freshness based on deal close date ideally
-      observedAt: new Date() // Ideally deal.createdAt
+      freshnessDays: deal.closeDate ? Math.max(0, Math.floor((Date.now() - new Date(deal.closeDate).getTime()) / (1000 * 60 * 60 * 24))) : 30,
+      observedAt: deal.closeDate ? new Date(deal.closeDate) : new Date()
     });
-  });
+
+    if (deal.id) {
+      try {
+        const dealNotes = await reader.getDealNotes(deal.id);
+        for (const dn of dealNotes) {
+          evidenceRecords.push({
+            pursuitId,
+            source: 'graph8',
+            sourceType: 'note',
+            sourceId: dn.id ? String(dn.id) : deal.id,
+            content: JSON.stringify(dn),
+            freshnessDays: 15,
+            observedAt: dn.createdAt ? new Date(dn.createdAt) : new Date()
+          });
+        }
+      } catch (_) {}
+    }
+  }
 
   // Signals evidence
   intentSignals.forEach(signal => {
@@ -125,7 +142,6 @@ export async function collectEvidence(pursuitId: string, companyDomain: string) 
       sourceType: 'signal',
       sourceId: signal.id,
       content: JSON.stringify(signal),
-      confidence: 'medium',
       freshnessDays: 2,
       observedAt: new Date()
     });
@@ -138,7 +154,6 @@ export async function collectEvidence(pursuitId: string, companyDomain: string) 
       sourceType: 'radar',
       sourceId: radar.id,
       content: JSON.stringify(radar),
-      confidence: 'medium',
       freshnessDays: 5,
       observedAt: new Date()
     });
@@ -152,11 +167,19 @@ export async function collectEvidence(pursuitId: string, companyDomain: string) 
       sourceType: 'note',
       sourceId: note.id.toString(),
       content: JSON.stringify(note),
-      confidence: 'high',
       freshnessDays: 10,
       observedAt: new Date()
     });
   });
+
+  // 3b. Quality Assessment Layer: Enrich each record with structured quality, type, and claim
+  for (const record of evidenceRecords) {
+    const q = assessEvidenceRecord(record);
+    record.evidenceType = q.evidenceType;
+    record.qualityScore = q.qualityScore;
+    record.claim = q.claim;
+    record.confidence = q.qualityScore >= 75 ? 'high' : q.qualityScore >= 50 ? 'medium' : 'low';
+  }
 
   // 4. Group into evidence events (Event Grouper)
   const events: any[] = [];
