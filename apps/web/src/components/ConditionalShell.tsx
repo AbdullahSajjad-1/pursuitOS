@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import AppShell from './AppShell';
 
 // Pages that render without the AppShell sidebar
-const SHELL_FREE = ['/', '/login'];
+const SHELL_FREE = ['/', '/login', '/pitch-deck'];
 
 export default function ConditionalShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

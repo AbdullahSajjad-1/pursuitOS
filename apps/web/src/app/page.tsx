@@ -287,11 +287,10 @@ export default function LandingPage() {
 
       {/* ── Sticky Nav ── */}
       <header
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          headerScrolled
-            ? 'bg-canvas/95 backdrop-blur-sm border-b border-border-subtle shadow-sm'
-            : 'bg-transparent border-b border-transparent'
-        }`}
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${headerScrolled
+          ? 'bg-canvas/95 backdrop-blur-sm border-b border-border-subtle shadow-sm'
+          : 'bg-transparent border-b border-transparent'
+          }`}
       >
         <div className="max-w-5xl mx-auto px-6 h-[60px] flex items-center justify-between">
           {/* Logo */}
@@ -342,7 +341,7 @@ export default function LandingPage() {
         </h1>
 
         <p className="text-[17px] text-secondary leading-relaxed max-w-xl mb-10">
-          PursuitOS runs a five-member AI council on every RFP: commercial, CTO, CEO, relationship, and competitive — then hands you a structured bid/no-bid decision backed by evidence from graph8.
+          PursuitOS runs a five-member AI council on every RFP: commercial, CTO, CEO, relationship, and competitive, then hands you a structured bid/no-bid decision backed by evidence from graph8.
         </p>
 
         <div className="flex items-center gap-4">
@@ -451,7 +450,7 @@ export default function LandingPage() {
       <section id="features" className="border-t border-border-subtle bg-surface py-28 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-            
+
             {/* Left Column: Sticky Big Text */}
             <div className="lg:col-span-5 lg:sticky lg:top-28">
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-border-subtle bg-surface-2 text-[11px] font-medium text-muted uppercase tracking-wider mb-4">
