@@ -369,7 +369,12 @@ function NewPursuitContent() {
             const data = await statusRes.json();
             const status = data?.pursuit?.status;
 
-            if (status === 'READY_FOR_REVIEW' || status === 'EXECUTED') {
+            // Pipeline is done when status leaves ANALYZING/CREATED
+            // Synthesizer sets: BID, NO_BID, CONDITIONAL_BID, WATCH
+            // Other terminal states: READY_FOR_REVIEW, EXECUTED, DENIED
+            const DONE_STATUSES = ['BID', 'NO_BID', 'CONDITIONAL_BID', 'WATCH', 'READY_FOR_REVIEW', 'EXECUTED', 'DENIED'];
+
+            if (DONE_STATUSES.includes(status)) {
               clearInterval(interval);
               resolve();
             } else if (status === 'ERROR') {
