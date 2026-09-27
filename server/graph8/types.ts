@@ -14,6 +14,7 @@ export interface Contact {
   lastName: string;
   email: string;
   title: string;
+  phone?: string;
 }
 
 export interface Deal {

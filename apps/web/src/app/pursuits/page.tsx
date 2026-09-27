@@ -11,28 +11,62 @@ export default async function PursuitsDashboard() {
 
   // Helper for status formatting
   const getStatusDisplay = (status: string) => {
-    if (status === 'ANALYZING') {
-      return (
-        <span className="flex items-center gap-2 text-accent text-[12px] font-medium">
-          <Clock size={12} className="animate-spin" /> Analyzing
-        </span>
-      );
+    switch (status) {
+      case 'EXECUTED':
+        return (
+          <span className="flex items-center gap-1.5 text-bid text-[12px] font-medium">
+            <CheckCircle2 size={13} className="text-bid" /> Executed (In CRM)
+          </span>
+        );
+      case 'DENIED':
+        return (
+          <span className="flex items-center gap-1.5 text-nobid text-[12px] font-medium">
+            <XCircle size={13} className="text-nobid" /> Denied
+          </span>
+        );
+      case 'BID':
+        return (
+          <span className="flex items-center gap-1.5 text-bid text-[12px] font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-bid" /> Bid
+          </span>
+        );
+      case 'CONDITIONAL_BID':
+        return (
+          <span className="flex items-center gap-1.5 text-conditional text-[12px] font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-conditional" /> Conditional Bid
+          </span>
+        );
+      case 'NO_BID':
+        return (
+          <span className="flex items-center gap-1.5 text-nobid text-[12px] font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-nobid" /> No Bid
+          </span>
+        );
+      case 'READY_FOR_REVIEW':
+        return (
+          <span className="flex items-center gap-1.5 text-accent text-[12px] font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent" /> Ready for Review
+          </span>
+        );
+      case 'ANALYZING':
+        return (
+          <span className="flex items-center gap-2 text-accent text-[12px] font-medium">
+            <Clock size={12} className="animate-spin" /> Analyzing
+          </span>
+        );
+      case 'ERROR':
+        return (
+          <span className="flex items-center gap-2 text-nobid text-[12px] font-medium">
+            <AlertCircle size={12} /> Error
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center gap-1.5 text-secondary text-[12px] font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-disabled" /> Draft
+          </span>
+        );
     }
-    if (status === 'ERROR') {
-      return (
-        <span className="flex items-center gap-2 text-nobid text-[12px] font-medium">
-          <AlertCircle size={12} /> Error
-        </span>
-      );
-    }
-    
-    // For MVP table, we'll just show 'Pending' if not analyzing or error
-    // In a real app we'd join with the latest council run decision.
-    return (
-      <span className="flex items-center gap-2 text-secondary text-[12px] font-medium">
-        <div className="w-1.5 h-1.5 rounded-full bg-disabled" /> Draft
-      </span>
-    );
   };
 
   return (

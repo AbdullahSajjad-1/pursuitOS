@@ -29,13 +29,15 @@ export interface EvidenceBundle {
 // Prompt builder
 // ---------------------------------------------------------------------------
 
+import { getFormattedCompanyProfile } from '../company/profile';
+
 function formatContext(bundle: EvidenceBundle): string {
   const reqBlock = bundle.requirements
     .map(r => `  • [${r.category.toUpperCase()}] (${r.priority}): ${r.text}`)
     .join('\n');
 
   const evidenceBlock = bundle.evidenceSummaries
-    .map(e => `  • [${e.sourceType}] (ID: ${e.id}, confidence: ${e.confidence}, freshness: ${e.freshnessDays}d): ${e.content.substring(0, 300)}`)
+    .map(e => `  • [${e.sourceType.toUpperCase()}] (${e.confidence} confidence, ${e.freshnessDays}d freshness): ${e.content.substring(0, 300)}`)
     .join('\n');
 
   const historyBlock = bundle.historicalMatches.length > 0
@@ -49,8 +51,11 @@ function formatContext(bundle: EvidenceBundle): string {
   return `
 ═══════════════════════════════════════════════════════════
 PURSUIT: ${bundle.pursuitName}
-COMPANY: ${bundle.companyName} (${bundle.companyDomain})
+PROSPECT / BUYER: ${bundle.companyName} (${bundle.companyDomain})
 ═══════════════════════════════════════════════════════════
+
+── OUR BIDDING ORGANIZATION (CORE CAPABILITIES & TECH STACK) ──
+${getFormattedCompanyProfile()}
 
 ── RFP REQUIREMENTS ──
 ${reqBlock}
@@ -78,17 +83,17 @@ ${eventsBlock}
 const ROLE_PROMPTS: Record<CouncilRole, string> = {
   commercial: `You are the COMMERCIAL ANALYST on a bid/no-bid council.
 
-Your sole focus is the financial and commercial attractiveness of this opportunity.
+Your sole focus is the financial and commercial attractiveness of this opportunity relative to our organization's sweet spot ($2.5M - $10M USD).
 
 Evaluate:
-1. Deal size relative to your organization's sweet spot
-2. Pricing risk — is the budget realistic for the scope?
-3. Payment terms and commercial structure implied by the RFP
-4. Historical pricing patterns with this buyer (if any prior deals)
-5. Revenue recognition timeline
-6. Upsell and expansion potential beyond the initial contract
+1. Deal size vs our $2.5M - $10M sweet spot — is the budget realistic for the scope?
+2. Pricing model risk: fixed-fee core platform vs milestone-based factory rollout.
+3. Payment terms and commercial structure implied by the RFP.
+4. Historical pricing patterns with this buyer (if any prior deals).
+5. 18-month recurring revenue and expansion potential.
 
-You must cite specific evidence IDs and RFP requirements in your assessment.
+Reference the factual commercial evidence, pricing data, and our commercial parameters in your assessment.
+NEVER output raw database UUIDs or internal IDs in human-facing text; always describe the real evidence context (e.g. "Graph8 company financials", "RFP Section 4 budget terms").
 Do NOT speculate about technical feasibility — that is the CTO's domain.
 Do NOT speculate about relationships — that is the Relationship Analyst's domain.
 
@@ -96,17 +101,17 @@ Be direct. If the numbers don't work, say so. If the deal is attractive, quantif
 
   cto: `You are the CTO / TECHNICAL ANALYST on a bid/no-bid council.
 
-Your sole focus is whether this opportunity is technically deliverable and feasible.
+Your sole focus is whether this opportunity is technically deliverable against OUR COMPANY'S TECH STACK AND CORE CAPABILITIES.
 
 Evaluate:
-1. Can your organization realistically deliver every technical requirement?
-2. Integration complexity — how many systems, APIs, data migrations?
-3. Security and compliance requirements — SOC2, encryption, certifications
-4. Timeline feasibility — is the proposed schedule achievable?
-5. Resource availability and skill gaps
-6. Technical debt risk and architectural concerns
+1. Direct stack alignment: Check RFP requirements against our specific competencies (Kubernetes, SAP S/4HANA bidirectional connectors, legacy AS/400 adapters, MQTT/OPC-UA edge stream processing, vector AI).
+2. Out-of-scope boundaries: Flag any physical hardware fabrication (e.g. physical AGV robotics chassis manufacturing) or unsupported domains that require external partners or subcontracting.
+3. Integration complexity: How many systems, APIs, protocol bridges (e.g. MQTT to SAP, AS/400 to cloud)?
+4. Security & compliance: Can we fulfill SOC 2 Type II, ISO 27001, and high-availability SLA requirements (99.995%)?
+5. Timeline & capacity: Is the schedule deliverable with our 85+ engineer bench?
 
-You must cite specific evidence IDs and RFP requirements in your assessment.
+Reference specific technical requirements and our company's native technologies in your assessment.
+NEVER output raw database UUIDs or internal IDs in human-facing text; always describe the real requirement or system (e.g. "our native SAP S/4HANA connector", "MQTT edge stream buffer").
 If a deadline is impossible given the scope, flag it as a hard blocker.
 Do NOT evaluate commercial terms — that is the Commercial Analyst's domain.
 
@@ -124,7 +129,8 @@ Evaluate:
 5. Resource allocation — does pursuing this pull resources from higher-value work?
 6. Market timing — is this the right moment for this type of engagement?
 
-You must cite specific evidence IDs and market signals in your assessment.
+Reference strategic market signals and Graph8 account data in your assessment.
+NEVER output raw database UUIDs or internal IDs in human-facing text; describe the strategic context directly.
 Think at the portfolio level, not just this single deal.
 Do NOT dive into technical specifics — that is the CTO's domain.
 
@@ -142,7 +148,8 @@ Evaluate:
 5. Relationship freshness — when was last meaningful contact?
 6. Political landscape — any known internal politics or blockers?
 
-You must cite specific evidence IDs (contacts, activities, notes) in your assessment.
+Reference specific contacts by name, role, and Graph8 history in your assessment.
+NEVER output raw database UUIDs or internal IDs in human-facing text (e.g. refer to "VP of Global Procurement David Miller" rather than a UUID).
 If we have zero relationship, say so clearly — that is a material risk.
 Do NOT evaluate the commercial terms — that is the Commercial Analyst's domain.
 
@@ -160,7 +167,8 @@ Evaluate:
 5. Incumbent advantage or disadvantage
 6. Win probability given the competitive field
 
-You must cite specific evidence IDs (radar signals, intent data) in your assessment.
+Reference specific competitor signals and radar data in your assessment.
+NEVER output raw database UUIDs or internal IDs in human-facing text.
 If we lack competitive intelligence, flag that as a gap.
 Do NOT evaluate internal technical capability — that is the CTO's domain.
 
@@ -183,6 +191,6 @@ ${context}
 Respond with your structured review. Your recommendation must be one of: bid, no_bid, or conditional_bid.
 Your confidence must be one of: low, medium, or high.
 Your score must be 0-100.
-Cite evidence IDs where possible.`,
+Reference actual evidence facts and context. Do NOT include raw database UUIDs in human-facing text.`,
   };
 }

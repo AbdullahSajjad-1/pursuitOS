@@ -13,7 +13,7 @@
     "@supabase/supabase-js": "latest",
     "drizzle-orm": "latest",
     "mammoth": "latest",
-    "pdf-parse": "latest",
+    "pdf-parse": "^1.1.1",
     "pg": "latest",
     "postgres": "^3.4.9",
     "uuid": "latest",

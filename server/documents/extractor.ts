@@ -69,7 +69,22 @@ export async function processRfpDocument(pursuitId: string, filename: string, mi
     throw new Error(`Extraction failed: invalid JSON response from Gemini`);
   }
 
-  // 4. Insert into database
+  // 4. Ensure budget / contract value is captured as a commercial requirement
+  const budgetMatch = rawText.match(/(?:Estimated Contract Value|Contract Value|Estimated Budget|Budget Ceiling|Budget)[\s:]+\$?([0-9,]+(?:\.[0-9]{2})?)\s*(USD)?/i);
+  if (budgetMatch) {
+    const budgetVal = parseInt(budgetMatch[1].replace(/,/g, ''), 10);
+    const hasExistingBudget = requirements.some(r => r.category === 'commercial' && r.text.includes(budgetMatch[1]));
+    if (!hasExistingBudget && !isNaN(budgetVal) && budgetVal > 0) {
+      requirements.unshift({
+        category: 'commercial',
+        priority: 'critical',
+        text: `Estimated Contract Value / Budget ceiling is $${budgetVal.toLocaleString()} USD as specified in the RFP.`,
+        sourceRef: 'Cover Page / Contract Value Specification'
+      });
+    }
+  }
+
+  // 5. Insert into database
   if (requirements.length > 0) {
     const toInsert = requirements.map(req => ({
       pursuitId,

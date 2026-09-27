@@ -26,6 +26,7 @@ export const getCompanyContacts = async (companyId: string): Promise<Contact[]> 
     firstName: c.first_name || '',
     lastName: c.last_name || '',
     email: c.work_email || '',
+    phone: (c as any).direct_phone || (c as any).mobile_phone || (c as any).phone || '',
     title: c.job_title || ''
   }));
 };
@@ -97,4 +98,30 @@ export const getFields = async (entity: 'company' | 'contact'): Promise<any[]> =
   }
   const result = await g8.fields.listContactFields();
   return result.data;
+};
+
+export const enrichCompany = async (domain: string): Promise<any> => {
+  try {
+    const res = await g8.enrich.company({ domain });
+    return res;
+  } catch (err: any) {
+    console.warn(`[graph8] Company enrichment failed for ${domain}:`, err?.message || err);
+    return null;
+  }
+};
+
+export const enrichPerson = async (params: {
+  email?: string;
+  linkedin_url?: string;
+  first_name?: string;
+  last_name?: string;
+  company_domain?: string;
+}): Promise<any> => {
+  try {
+    const res = await g8.enrich.person(params);
+    return res;
+  } catch (err: any) {
+    console.warn(`[graph8] Person enrichment failed:`, err?.message || err);
+    return null;
+  }
 };

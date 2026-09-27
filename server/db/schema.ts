@@ -73,6 +73,7 @@ export const councilRuns = pgTable('council_runs', {
   confidence: text('confidence'),
   synthesisRationale: text('synthesis_rationale'),
   recommendedAction: text('recommended_action'),
+  communicationStrategy: jsonb('communication_strategy'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

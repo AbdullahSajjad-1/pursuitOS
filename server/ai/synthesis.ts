@@ -97,11 +97,11 @@ You have received independent assessments from five council analysts:
 RULES:
 1. Your decision MUST be one of: bid, no_bid, or conditional_bid
 2. If any single analyst flags a hard blocker (score < 20, recommendation = no_bid), explain why you agree or disagree
-3. For conditional_bid, you MUST list specific conditions that must be resolved
-4. Every claim in your rationale must reference which analyst's evidence supports it
+4. Every claim in your rationale must reference which analyst or evidence fact supports it (e.g. "CTO technical review", "VP of Global Procurement David Miller in Graph8"). NEVER output raw database UUIDs or internal IDs in the rationale.
 5. Generate 5-8 concrete next actions with clear owners (cto, sales, legal, executive)
 6. The weighted_score is: sum of (analyst_score × weight). Calculate it precisely.
 7. Confidence reflects evidence completeness: high = strong Graph8 data, medium = some gaps, low = mostly speculation
+8. Under no circumstances should you print raw UUID strings (e.g. 96d45630-...) in the user-facing rationale or descriptions. Always write clean, executive-ready prose.
 
 Do NOT invent evidence. If the council members flagged missing data, reflect that in your confidence level.`;
 

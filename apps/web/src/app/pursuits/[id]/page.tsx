@@ -24,6 +24,7 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
     .limit(1);
   
   let synthesis = null;
+  let strategy = null;
   let reviews: any[] = [];
 
   if (runs.length > 0) {
@@ -35,6 +36,7 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
       recommendedAction: latestRun.recommendedAction,
       conditions: [] // We'd ideally parse conditions from a structured JSON if stored
     };
+    strategy = latestRun.communicationStrategy;
 
     reviews = await db.select().from(councilReviews).where(eq(councilReviews.runId, latestRun.id));
   }
@@ -43,14 +45,22 @@ export default async function PursuitPage({ params }: { params: Promise<{ id: st
     .where(eq(evidenceEvents.pursuitId, id))
     .orderBy(desc(evidenceEvents.createdAt));
 
+  const { calculateBidPricing } = await import('@pursuitos/server/commercial/pricing');
+  const pricing = calculateBidPricing({
+    requirements: requirements.map(r => ({ category: r.category, priority: r.priority, text: r.text })),
+    decision: synthesis?.decision || pursuit.status
+  });
+
   return (
     <div className="h-full">
       <PursuitScreenClient 
         pursuit={pursuit}
         requirements={requirements}
         synthesis={synthesis}
+        strategy={strategy}
         reviews={reviews}
         events={events}
+        pricing={pricing}
       />
     </div>
   );

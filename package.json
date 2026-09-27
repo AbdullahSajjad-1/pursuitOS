@@ -8,6 +8,12 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=web",
-    "build": "npm run build --workspace=web"
+    "build": "npm run build --workspace=web",
+    "list:companies": "npx tsx server/list_all.ts",
+    "seed:companies": "npx tsx server/scripts/seed_10_companies.ts",
+    "generate:rfps": "python3 generate_all_rfps.py"
+  },
+  "dependencies": {
+    "pdf-parse": "^1.1.1"
   }
 }
