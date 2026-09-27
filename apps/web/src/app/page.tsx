@@ -12,10 +12,11 @@ import {
   XCircle,
   Clock,
   ChevronRight,
-  ChevronLeft,
   Eye,
   ShieldCheck,
   Cpu,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 
 // ─── Typewriter ───────────────────────────────────────────────────────────────
@@ -46,7 +47,7 @@ function Typewriter() {
   }, [displayed, deleting, idx]);
 
   return (
-    <span className="text-accent">
+    <span className="text-accent inline-block whitespace-nowrap">
       {displayed}
       <span className="animate-pulse">|</span>
     </span>
@@ -164,42 +165,102 @@ function PursuitRow({
 
 // ─── Features Data ───────────────────────────────────────────────────────────
 
-const FEATURES = [
+const VERTICAL_FEATURES = [
   {
+    id: '01',
     icon: FileText,
-    badge: 'Ingestion',
-    title: 'Document parsing',
-    description: 'Upload PDFs, Word docs, or RFP specs. Requirements are extracted and categorized automatically into structured graph schemas.',
+    badge: 'Ingestion Engine',
+    title: 'Automated Document Parsing & Decomposition',
+    description:
+      'Upload complex RFP questionnaires, technical specs, or multi-page PDFs. PursuitOS automatically extracts SLAs, compliance constraints, and scope items into structured verification nodes.',
+    preview: {
+      label: 'Extracted Criteria',
+      items: [
+        { label: 'Security & Auth', value: 'SAML 2.0 / Okta SCIM required' },
+        { label: 'Latency SLA', value: '99.95% uptime with 200ms p99' },
+        { label: 'Data Residency', value: 'EU-Frankfurt / GDPR enforced' },
+      ],
+    },
   },
   {
+    id: '02',
     icon: Brain,
-    badge: 'Deliberation',
-    title: 'AI Council',
-    description: 'Five specialist agents deliberate in parallel,  commercial, CTO, CEO, relationship, and competitive postures.',
+    badge: 'Multi-Agent Council',
+    title: 'Autonomous Five-Member Deliberation',
+    description:
+      'Commercial, CTO, CEO, Relationship, and Competitive specialist agents cross-examine every requirement concurrently. Divergent perspectives eliminate confirmation bias before commitments are signed.',
+    preview: {
+      label: 'Agent Deliberation Matrix',
+      items: [
+        { label: 'CTO Council', value: 'Conditional — custom connectors needed' },
+        { label: 'Commercial Agent', value: 'Favorable — ACV $380k at 78% margin' },
+        { label: 'Relationship Agent', value: 'High — warm intro via former VP Eng' },
+      ],
+    },
   },
   {
+    id: '03',
     icon: Zap,
-    badge: 'Live Context',
-    title: 'Graph8 Integration',
-    description: 'Every decision is verified against company, contact, deal history, and buyer signals from graph8.',
+    badge: 'Real-Time Verification',
+    title: 'Live Graph8 Deal & Account Intelligence',
+    description:
+      'Every council recommendation is verified against active company, contact, deal history, and competitor presence from your graph8 data graph. Zero speculative assumptions.',
+    preview: {
+      label: 'Graph8 Graph Verification',
+      items: [
+        { label: 'Entity Match', value: 'graph8.com verified (14 connected deals)' },
+        { label: 'Signal Stream', value: 'Hiring spike in ML Infrastructure' },
+        { label: 'Confidence Score', value: '96.4% based on 22 empirical signals' },
+      ],
+    },
   },
   {
+    id: '04',
     icon: RotateCcw,
-    badge: 'Automation',
-    title: 'Revival Scanner',
-    description: 'Scan lost or paused opportunities. When market triggers align, PursuitOS surfaces deals ready to re-engage.',
+    badge: 'Pipeline Revival',
+    title: 'Continuous Revival Opportunity Scanner',
+    description:
+      'Deals lost months ago are monitored around the clock. When market triggers shift — competitor pricing increases, sponsor promotions, or tech changes — PursuitOS surfaces high-probability re-engagement plays.',
+    preview: {
+      label: 'Revival Signal Trigger',
+      items: [
+        { label: 'Detected Trigger', value: 'Incumbent contract renewal window' },
+        { label: 'Target Account', value: 'Tenbound Global ($240k historical lost)' },
+        { label: 'Revival Action', value: 'Drafted tailored re-engagement brief' },
+      ],
+    },
   },
   {
+    id: '05',
     icon: ShieldCheck,
-    badge: 'Governance',
-    title: 'Audit Trail',
-    description: 'Inspect every claim, risk assessment, and council transcript with verifiable evidence references.',
+    badge: 'Decision Governance',
+    title: 'Verifiable Evidence Trail & Board Summaries',
+    description:
+      'Complete visibility into how every verdict was formulated. Inspect cited requirements, agent deliberation logs, and counter-arguments with an immutable audit trail.',
+    preview: {
+      label: 'Audit Chain Record',
+      items: [
+        { label: 'Verdict ID', value: 'verdict_01J9K4M82P' },
+        { label: 'Consensus', value: '4 Bid / 1 Conditional (Consensus 88%)' },
+        { label: 'Signed Evidence', value: '18 cited graph8 records attached' },
+      ],
+    },
   },
   {
+    id: '06',
     icon: Cpu,
-    badge: 'Execution',
-    title: 'CRM Write-Back',
-    description: 'One-click sync to push approved decisions, stage progressions, battle-card summaries, and task lists.',
+    badge: 'CRM Automation',
+    title: 'Bi-Directional CRM Stage Progression',
+    description:
+      'Approved decisions push straight to your CRM without manual data re-entry. PursuitOS updates opportunity stages, posts council summaries, and automatically schedules AE follow-up tasks.',
+    preview: {
+      label: 'Write-Back Confirmation',
+      items: [
+        { label: 'CRM Target', value: 'graph8 pipeline & deal table' },
+        { label: 'Stage Transition', value: 'Discovery → Technical Validation' },
+        { label: 'Generated Assets', value: 'Executive 1-pager & AE battle-card' },
+      ],
+    },
   },
 ];
 
@@ -207,7 +268,6 @@ const FEATURES = [
 
 export default function LandingPage() {
   const [headerScrolled, setHeaderScrolled] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setHeaderScrolled(window.scrollY > 24);
@@ -222,22 +282,16 @@ export default function LandingPage() {
     }
   };
 
-  const scrollFeatures = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = direction === 'left' ? -340 : 340;
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-canvas text-primary selection:bg-accent/30 selection:text-primary">
 
       {/* ── Sticky Nav ── */}
       <header
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${headerScrolled
-          ? 'bg-canvas/95 backdrop-blur-sm border-b border-border-subtle shadow-sm'
-          : 'bg-transparent border-b border-transparent'
-          }`}
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+          headerScrolled
+            ? 'bg-canvas/95 backdrop-blur-sm border-b border-border-subtle shadow-sm'
+            : 'bg-transparent border-b border-transparent'
+        }`}
       >
         <div className="max-w-5xl mx-auto px-6 h-[60px] flex items-center justify-between">
           {/* Logo */}
@@ -280,13 +334,15 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className="max-w-5xl mx-auto px-6 pt-36 pb-24">
-        <h1 className="text-[52px] leading-[1.08] font-semibold tracking-tight text-primary max-w-3xl mb-6">
-          Pursue every deal with{' '}
-          <Typewriter />
+        <h1 className="text-[44px] sm:text-[54px] lg:text-[58px] leading-[1.08] font-semibold tracking-tight text-primary max-w-4xl mb-6">
+          Pursue every deal<br className="hidden sm:inline" /> with{' '}
+          <span className="inline-block whitespace-nowrap">
+            <Typewriter />
+          </span>
         </h1>
 
         <p className="text-[17px] text-secondary leading-relaxed max-w-xl mb-10">
-          PursuitOS runs a five-member AI council on every RFP: commercial, CTO, CEO, relationship, and competitive, then hands you a structured bid/no-bid decision backed by evidence from graph8.
+          PursuitOS runs a five-member AI council on every RFP: commercial, CTO, CEO, relationship, and competitive — then hands you a structured bid/no-bid decision backed by evidence from graph8.
         </p>
 
         <div className="flex items-center gap-4">
@@ -391,79 +447,104 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Horizontally Scrollable Features ── */}
-      <section id="features" className="border-t border-border-subtle bg-surface py-24 scroll-mt-20 overflow-hidden">
+      {/* ── Sticky Split Features Section (Big text left, vertical scroll right) ── */}
+      <section id="features" className="border-t border-border-subtle bg-surface py-28 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <p className="text-[11px] font-medium text-disabled uppercase tracking-wider mb-3">Features</p>
-              <h2 className="text-[32px] font-semibold tracking-tight text-primary max-w-lg">
-                Everything your deal team needs
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+            
+            {/* Left Column: Sticky Big Text */}
+            <div className="lg:col-span-5 lg:sticky lg:top-28">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-border-subtle bg-surface-2 text-[11px] font-medium text-muted uppercase tracking-wider mb-4">
+                <Layers size={13} className="text-accent" />
+                Capabilities
+              </div>
+              <h2 className="text-[36px] sm:text-[42px] font-semibold tracking-tight text-primary leading-[1.1] mb-6">
+                Everything your deal team needs to win.
               </h2>
-            </div>
+              <p className="text-[15px] text-secondary leading-relaxed mb-8">
+                PursuitOS replaces slow, unstructured committee debates with autonomous, evidence-backed deal intelligence grounded in graph8.
+              </p>
 
-            {/* Scroll Navigation Controls */}
-            <div className="hidden sm:flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => scrollFeatures('left')}
-                className="w-8 h-8 rounded-md border border-border-subtle flex items-center justify-center text-secondary hover:text-primary hover:border-muted transition-colors cursor-pointer"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollFeatures('right')}
-                className="w-8 h-8 rounded-md border border-border-subtle flex items-center justify-center text-secondary hover:text-primary hover:border-muted transition-colors cursor-pointer"
-                aria-label="Scroll right"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
+              <div className="space-y-3 pt-6 border-t border-border-subtle">
+                <div className="flex items-center gap-2 text-[13px] text-secondary">
+                  <Sparkles size={14} className="text-accent flex-shrink-0" />
+                  <span>5 specialist AI deliberation council agents</span>
+                </div>
+                <div className="flex items-center gap-2 text-[13px] text-secondary">
+                  <Zap size={14} className="text-accent flex-shrink-0" />
+                  <span>Live graph8 entity & pipeline synchronization</span>
+                </div>
+                <div className="flex items-center gap-2 text-[13px] text-secondary">
+                  <ShieldCheck size={14} className="text-accent flex-shrink-0" />
+                  <span>Auditable decision record with evidence citations</span>
+                </div>
+              </div>
 
-          {/* Horizontally Scrollable Container */}
-          <div
-            ref={scrollContainerRef}
-            className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth no-scrollbar"
-            style={{
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-            }}
-          >
-            {FEATURES.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={index}
-                  className="snap-start flex-shrink-0 w-[280px] sm:w-[320px] border border-border-subtle rounded-xl p-6 bg-canvas hover:border-muted transition-all duration-300 group flex flex-col justify-between"
+              <div className="mt-8 pt-6">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-2 border border-border-subtle text-[13px] font-medium text-primary hover:border-muted hover:bg-surface-3 transition-colors"
                 >
-                  <div>
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="w-9 h-9 rounded-lg border border-border-subtle flex items-center justify-center text-secondary group-hover:text-primary group-hover:border-muted transition-colors">
-                        <Icon size={18} />
+                  Start exploring
+                  <ChevronRight size={14} className="text-muted" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column: Vertically Scrolling Features */}
+            <div className="lg:col-span-7 space-y-8">
+              {VERTICAL_FEATURES.map((feat) => {
+                const Icon = feat.icon;
+                return (
+                  <div
+                    key={feat.id}
+                    className="border border-border-subtle rounded-xl p-7 bg-canvas hover:border-muted transition-all duration-300 group"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md border border-border-subtle flex items-center justify-center text-secondary group-hover:text-primary group-hover:border-muted transition-colors">
+                          <Icon size={16} />
+                        </div>
+                        <span className="text-[12px] font-mono text-muted uppercase tracking-wider">
+                          {feat.badge}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-border-subtle text-muted">
-                        {item.badge}
+                      <span className="text-[12px] font-mono text-disabled font-medium">
+                        {feat.id}
                       </span>
                     </div>
 
-                    <h3 className="text-[15px] font-medium text-primary mb-2">
-                      {item.title}
+                    {/* Title & Copy */}
+                    <h3 className="text-[17px] font-medium text-primary mb-2.5 group-hover:text-white transition-colors">
+                      {feat.title}
                     </h3>
-                    <p className="text-[13px] text-secondary leading-relaxed">
-                      {item.description}
+                    <p className="text-[13px] text-secondary leading-relaxed mb-6">
+                      {feat.description}
                     </p>
-                  </div>
 
-                  <div className="mt-6 pt-4 border-t border-border-subtle flex items-center text-[12px] text-muted group-hover:text-primary transition-colors">
-                    <span>Explore capability</span>
-                    <ChevronRight size={13} className="ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                    {/* Live Evidence Preview Box */}
+                    <div className="bg-surface-2 border border-border-subtle rounded-lg p-3.5 space-y-2">
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-disabled">
+                        {feat.preview.label}
+                      </div>
+                      <div className="space-y-1.5">
+                        {feat.preview.items.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start justify-between text-[11px] font-mono gap-3"
+                          >
+                            <span className="text-muted flex-shrink-0">{item.label}:</span>
+                            <span className="text-primary truncate text-right">{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
           </div>
         </div>
       </section>
