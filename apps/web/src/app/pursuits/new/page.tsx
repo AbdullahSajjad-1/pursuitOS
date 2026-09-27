@@ -63,7 +63,7 @@ const QUICK_COMPANIES = [
 interface LogEntry {
   id: string;
   speaker: string;
-  role: 'system' | 'cto' | 'sales' | 'legal' | 'delivery' | 'cso' | 'strat';
+  role: 'system' | 'cto' | 'commercial' | 'ceo' | 'relationship' | 'competitive';
   text: string;
   timestamp: string;
 }
