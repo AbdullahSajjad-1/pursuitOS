@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Command,
-  ChevronLeft,
-  ChevronRight,
   ArrowRight,
   FileText,
   Brain,
@@ -20,7 +19,6 @@ import {
   Clock,
   Zap,
   ShieldCheck,
-  Home,
   X,
 } from 'lucide-react';
 
@@ -48,33 +46,135 @@ type SlideId = typeof SLIDES[number];
 export default function PitchDeck() {
   const router = useRouter();
   const [current, setCurrent] = useState(0);
-  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
-  const [transitioning, setTransitioning] = useState(false);
+  const currentRef = useRef(0);
+  const isScrollingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLElement | null)[]>([]);
 
   const total = SLIDES.length;
 
-  const go = useCallback((next: number) => {
-    if (transitioning || next < 0 || next >= total) return;
-    setDirection(next > current ? 'forward' : 'back');
-    setTransitioning(true);
-    setTimeout(() => {
-      setCurrent(next);
-      setTransitioning(false);
-    }, 280);
-  }, [current, total, transitioning]);
+  const scrollToSlide = useCallback((index: number) => {
+    if (index < 0 || index >= total) return;
+    const target = slideRefs.current[index];
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth' });
+      setCurrent(index);
+      currentRef.current = index;
+    }
+  }, [total]);
 
-  const prev = () => go(current - 1);
-  const next = () => go(current + 1);
+  // Track active slide with IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = Number(entry.target.getAttribute('data-index'));
+            if (!isNaN(idx)) {
+              setCurrent(idx);
+              currentRef.current = idx;
+            }
+          }
+        }
+      },
+      { threshold: 0.55 }
+    );
 
+    slideRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // One swipe / scroll gesture transitions to next or previous slide
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let wheelTimeout: NodeJS.Timeout | null = null;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) < 25) return;
+      e.preventDefault();
+
+      if (isScrollingRef.current) return;
+      isScrollingRef.current = true;
+
+      if (e.deltaY > 0) {
+        if (currentRef.current < total - 1) {
+          scrollToSlide(currentRef.current + 1);
+        }
+      } else {
+        if (currentRef.current > 0) {
+          scrollToSlide(currentRef.current - 1);
+        }
+      }
+
+      if (wheelTimeout) clearTimeout(wheelTimeout);
+      wheelTimeout = setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 650);
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      if (wheelTimeout) clearTimeout(wheelTimeout);
+    };
+  }, [scrollToSlide, total]);
+
+  // Touch swipe support (one swipe down -> next slide)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let startY = 0;
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const diffY = startY - e.changedTouches[0].clientY;
+      if (Math.abs(diffY) > 45) {
+        if (diffY > 0 && currentRef.current < total - 1) {
+          scrollToSlide(currentRef.current + 1);
+        } else if (diffY < 0 && currentRef.current > 0) {
+          scrollToSlide(currentRef.current - 1);
+        }
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [scrollToSlide, total]);
+
+  // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        next();
+        if (currentRef.current < total - 1) {
+          scrollToSlide(currentRef.current + 1);
+        }
       }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        prev();
+        if (currentRef.current > 0) {
+          scrollToSlide(currentRef.current - 1);
+        }
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        scrollToSlide(0);
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        scrollToSlide(total - 1);
       }
       if (e.key === 'Escape') {
         router.push('/');
@@ -82,105 +182,153 @@ export default function PitchDeck() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, transitioning]);
-
-  const slideId = SLIDES[current];
+  }, [scrollToSlide, total, router]);
 
   return (
-    <div className="relative h-screen w-screen bg-canvas overflow-hidden font-sans select-none">
-
-      {/* Top Bar */}
-      <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-8 py-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-[5px] bg-accent flex items-center justify-center">
+    <div
+      ref={containerRef}
+      className="relative h-screen w-screen bg-canvas overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth font-sans select-none [&::-webkit-scrollbar]:hidden"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
+      {/* Top Header Bar */}
+      <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-8 py-4 backdrop-blur-md bg-canvas/60">
+        <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
+          <div className="w-6 h-6 rounded-[5px] bg-accent flex items-center justify-center transition-transform group-hover:scale-105">
             <Command size={12} className="text-white" />
           </div>
           <span className="text-[13px] font-semibold text-primary tracking-tight">PursuitOS</span>
           <span className="text-[11px] text-disabled ml-1">· Pitch Deck</span>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-4">
           <span className="text-[11px] font-mono text-disabled tabular-nums">
             {String(current + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
           </span>
-          <button
-            onClick={() => router.push('/')}
+          <Link
+            href="/"
             className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-primary hover:bg-surface-2 transition-colors cursor-pointer"
             title="Exit to home"
           >
             <X size={14} />
-          </button>
+          </Link>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="absolute top-0 inset-x-0 z-40 h-0.5 bg-border-subtle">
+      <div className="fixed top-0 inset-x-0 z-50 h-0.5 bg-border-subtle">
         <div
           className="h-full bg-accent transition-all duration-500 ease-out"
           style={{ width: `${((current + 1) / total) * 100}%` }}
         />
       </div>
 
-      {/* Slide Container */}
-      <div
-        className={`h-full w-full transition-all duration-280 ease-out ${
-          transitioning
-            ? direction === 'forward'
-              ? 'opacity-0 translate-x-6'
-              : 'opacity-0 -translate-x-6'
-            : 'opacity-100 translate-x-0'
-        }`}
-        style={{ transitionDuration: '280ms' }}
+      {/* Slide 01: Title */}
+      <section
+        ref={(el) => { slideRefs.current[0] = el; }}
+        data-index="0"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
       >
-        {slideId === 'title' && <Slide_Title />}
-        {slideId === 'problem' && <Slide_Problem />}
-        {slideId === 'question' && <Slide_Question />}
-        {slideId === 'solution' && <Slide_Solution />}
-        {slideId === 'graph8-foundation' && <Slide_Graph8Foundation />}
-        {slideId === 'what-ai-sees' && <Slide_WhatAISees />}
-        {slideId === 'council' && <Slide_Council />}
-        {slideId === 'verdict' && <Slide_Verdict />}
-        {slideId === 'writeback' && <Slide_WriteBack />}
-        {slideId === 'revival' && <Slide_Revival />}
-        {slideId === 'big-picture' && <Slide_BigPicture />}
-        {slideId === 'closing' && <Slide_Closing />}
-      </div>
+        <Slide_Title />
+      </section>
 
-      {/* Navigation Controls */}
-      <div className="absolute bottom-8 inset-x-0 z-30 flex items-center justify-between px-8">
-        {/* Dot Indicators */}
-        <div className="flex items-center gap-1.5">
-          {SLIDES.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => go(i)}
-              className={`rounded-full transition-all duration-300 cursor-pointer ${
-                i === current
-                  ? 'w-5 h-1.5 bg-accent'
-                  : 'w-1.5 h-1.5 bg-border-subtle hover:bg-muted'
-              }`}
-            />
-          ))}
-        </div>
+      {/* Slide 02: Problem */}
+      <section
+        ref={(el) => { slideRefs.current[1] = el; }}
+        data-index="1"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Problem />
+      </section>
 
-        {/* Arrow Buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={prev}
-            disabled={current === 0}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-border-subtle text-secondary hover:text-primary hover:border-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            onClick={next}
-            disabled={current === total - 1}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-border-subtle text-secondary hover:text-primary hover:border-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
+      {/* Slide 03: The Question */}
+      <section
+        ref={(el) => { slideRefs.current[2] = el; }}
+        data-index="2"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Question />
+      </section>
+
+      {/* Slide 04: Solution */}
+      <section
+        ref={(el) => { slideRefs.current[3] = el; }}
+        data-index="3"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Solution />
+      </section>
+
+      {/* Slide 05: Graph8 Foundation */}
+      <section
+        ref={(el) => { slideRefs.current[4] = el; }}
+        data-index="4"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Graph8Foundation />
+      </section>
+
+      {/* Slide 06: What the AI Sees */}
+      <section
+        ref={(el) => { slideRefs.current[5] = el; }}
+        data-index="5"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_WhatAISees />
+      </section>
+
+      {/* Slide 07: The Council */}
+      <section
+        ref={(el) => { slideRefs.current[6] = el; }}
+        data-index="6"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Council />
+      </section>
+
+      {/* Slide 08: The Verdict */}
+      <section
+        ref={(el) => { slideRefs.current[7] = el; }}
+        data-index="7"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Verdict />
+      </section>
+
+      {/* Slide 09: Write-Back */}
+      <section
+        ref={(el) => { slideRefs.current[8] = el; }}
+        data-index="8"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_WriteBack />
+      </section>
+
+      {/* Slide 10: Revival Scanner */}
+      <section
+        ref={(el) => { slideRefs.current[9] = el; }}
+        data-index="9"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Revival />
+      </section>
+
+      {/* Slide 11: Big Picture */}
+      <section
+        ref={(el) => { slideRefs.current[10] = el; }}
+        data-index="10"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_BigPicture />
+      </section>
+
+      {/* Slide 12: Closing */}
+      <section
+        ref={(el) => { slideRefs.current[11] = el; }}
+        data-index="11"
+        className="h-screen w-screen snap-start snap-always flex-shrink-0 relative overflow-hidden flex items-center justify-center"
+      >
+        <Slide_Closing />
+      </section>
     </div>
   );
 }
@@ -189,7 +337,7 @@ export default function PitchDeck() {
 
 function SlideWrap({ children, center = true }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <div className={`h-full w-full flex flex-col ${center ? 'items-center justify-center' : ''} px-20 py-20 pt-20`}>
+    <div className={`h-full w-full max-w-6xl mx-auto flex flex-col ${center ? 'items-center justify-center' : 'justify-center'} px-8 md:px-16 py-16 relative`}>
       {children}
     </div>
   );
@@ -200,14 +348,6 @@ function SlideLabel({ children }: { children: React.ReactNode }) {
     <div className="text-[11px] font-mono uppercase tracking-[0.14em] text-muted mb-4">
       {children}
     </div>
-  );
-}
-
-function SlideSub({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
-  return (
-    <p className={`text-[18px] text-secondary leading-relaxed ${wide ? 'max-w-3xl' : 'max-w-2xl'}`}>
-      {children}
-    </p>
   );
 }
 
@@ -225,30 +365,26 @@ function Slide_Title() {
   return (
     <SlideWrap>
       <div className="text-center max-w-4xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-subtle bg-surface-2 text-[11px] font-mono text-muted mb-8 uppercase tracking-widest">
-          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          Graph8 Hackathon 2025
-        </div>
-        <h1 className="text-[64px] lg:text-[80px] font-semibold tracking-tight text-primary leading-[1.0] mb-6">
+        <h1 className="text-[64px] lg:text-[84px] font-semibold tracking-tight text-primary leading-[1.0] mb-6">
           PursuitOS
         </h1>
         <p className="text-[22px] text-secondary font-light max-w-xl mx-auto mb-10 leading-relaxed">
-          The <Accent>autonomous decision engine</Accent> for enterprise deal pursuits — grounded in Graph8.
+          The <Accent>autonomous decision engine</Accent> for enterprise deal pursuits, grounded in Graph8.
         </p>
 
         <div className="flex items-center justify-center gap-6 text-[12px] font-mono text-muted">
           <span className="flex items-center gap-1.5">
-            <div className="w-1 h-1 rounded-full bg-bid" />
+            <div className="w-1.5 h-1.5 rounded-full bg-bid" />
             RFP Intelligence
           </span>
           <span className="text-border-subtle">·</span>
           <span className="flex items-center gap-1.5">
-            <div className="w-1 h-1 rounded-full bg-conditional" />
+            <div className="w-1.5 h-1.5 rounded-full bg-conditional" />
             5-Agent Council
           </span>
           <span className="text-border-subtle">·</span>
           <span className="flex items-center gap-1.5">
-            <div className="w-1 h-1 rounded-full bg-accent" />
+            <div className="w-1.5 h-1.5 rounded-full bg-accent" />
             Graph8 Powered
           </span>
         </div>
@@ -263,7 +399,7 @@ function Slide_Problem() {
   return (
     <SlideWrap center={false}>
       <div className="flex-1 flex flex-col justify-center max-w-3xl">
-        <SlideLabel>01 — The Problem</SlideLabel>
+        <SlideLabel>01 / The Problem</SlideLabel>
         <h1 className="text-[52px] font-semibold tracking-tight text-primary leading-[1.06] mb-6">
           Hundreds of pages.<br />
           <Accent>Four days.</Accent><br />
@@ -274,15 +410,15 @@ function Slide_Problem() {
           Enterprise RFPs arrive as dense stacks of requirements, security questionnaires, technical specifications, and commercial conditions.
         </p>
         <p className="text-[17px] text-secondary leading-relaxed max-w-2xl">
-          From finding an RFP to deciding whether to pursue it, companies often wait <span className="text-primary font-medium">four days or more</span> — gathering opinions from Solutions Architects, Commercial leads, Sales leadership, and Legal — before anyone even commits to an answer.
+          From finding an RFP to deciding whether to pursue it, companies often wait <span className="text-primary font-medium">four days or more</span>, gathering opinions from Solutions Architects, Commercial leads, Sales leadership, and Legal, before anyone even commits to an answer.
         </p>
       </div>
 
-      <div className="absolute right-20 top-1/2 -translate-y-1/2 flex flex-col gap-3">
+      <div className="hidden lg:flex absolute right-16 top-1/2 -translate-y-1/2 flex-col gap-3">
         {['Technical Specifications', 'Security Questionnaire', 'Compliance Annex', 'Commercial Terms'].map((item, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border-subtle bg-surface text-[13px] text-secondary"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border-subtle bg-surface text-[13px] text-secondary shadow-sm"
             style={{ transform: `rotate(${(i % 2 === 0 ? 1 : -1) * 1.2}deg)` }}
           >
             <FileText size={14} className="text-muted flex-shrink-0" />
@@ -300,10 +436,10 @@ function Slide_Question() {
   return (
     <SlideWrap>
       <div className="text-center max-w-4xl">
-        <SlideLabel>02 — The Core Question</SlideLabel>
+        <SlideLabel>02 / The Core Question</SlideLabel>
         <h1 className="text-[52px] lg:text-[68px] font-semibold tracking-tight text-primary leading-[1.06] mb-8">
-          "Can we actually win this —<br />
-          <Accent>and should we even try?</Accent>"
+          &quot;Can we actually win this,<br />
+          <Accent>and should we even try?&quot;</Accent>
         </h1>
         <Divider />
         <p className="text-[18px] text-secondary mx-auto max-w-xl leading-relaxed">
@@ -320,22 +456,22 @@ function Slide_Solution() {
   return (
     <SlideWrap center={false}>
       <div className="flex-1 flex flex-col justify-center max-w-3xl">
-        <SlideLabel>03 — The Solution</SlideLabel>
+        <SlideLabel>03 / The Solution</SlideLabel>
         <h1 className="text-[48px] font-semibold tracking-tight text-primary leading-[1.06] mb-6">
           That is what we built<br />
           <Accent>PursuitOS</Accent> to solve.
         </h1>
         <Divider />
         <p className="text-[17px] text-secondary leading-relaxed mb-6">
-          PursuitOS ingests an RFP — or an existing opportunity — and turns that unstructured information into a structured, evidence-backed pursuit in minutes.
+          PursuitOS ingests an RFP or an existing opportunity, turning that unstructured information into a structured, evidence-backed pursuit in minutes.
         </p>
         <p className="text-[17px] text-secondary leading-relaxed">
-          But the RFP alone doesn't tell you whether you should bid. That's where <span className="text-primary font-medium">Graph8 becomes the foundation.</span>
+          But the RFP alone doesn&apos;t tell you whether you should bid. That&apos;s where <span className="text-primary font-medium">Graph8 becomes the foundation.</span>
         </p>
       </div>
 
-      <div className="absolute right-16 top-1/2 -translate-y-1/2 w-[320px]">
-        <div className="border border-border-subtle rounded-xl overflow-hidden bg-surface">
+      <div className="hidden lg:block absolute right-16 top-1/2 -translate-y-1/2 w-[320px]">
+        <div className="border border-border-subtle rounded-xl overflow-hidden bg-surface shadow-xl">
           <div className="px-4 py-3 border-b border-border-subtle flex items-center gap-2 bg-surface-2">
             <span className="w-2 h-2 rounded-full bg-nobid opacity-60" />
             <span className="w-2 h-2 rounded-full bg-conditional opacity-60" />
@@ -357,7 +493,7 @@ function Slide_Solution() {
               <Brain size={14} className="text-accent" />
               <span className="text-[12px] text-secondary">Council Deliberating...</span>
               <div className="ml-auto flex gap-0.5">
-                {[0, 1, 2].map(i => (
+                {[0, 1, 2].map((i) => (
                   <div key={i} className="w-1 h-1 rounded-full bg-accent animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
                 ))}
               </div>
@@ -383,7 +519,7 @@ function Slide_Graph8Foundation() {
   return (
     <SlideWrap center={false}>
       <div className="flex-1 flex flex-col justify-center max-w-xl">
-        <SlideLabel>04 — Graph8 as Foundation</SlideLabel>
+        <SlideLabel>04 / Graph8 as Foundation</SlideLabel>
         <h1 className="text-[44px] font-semibold tracking-tight text-primary leading-[1.06] mb-6">
           Graph8 is where<br />
           the <Accent>account reality</Accent><br />
@@ -395,11 +531,11 @@ function Slide_Graph8Foundation() {
         </p>
       </div>
 
-      <div className="absolute right-16 top-1/2 -translate-y-1/2 w-[300px] space-y-2">
+      <div className="hidden lg:block absolute right-16 top-1/2 -translate-y-1/2 w-[320px] space-y-2">
         {signals.map((s, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border-subtle bg-surface text-[13px] text-secondary hover:border-muted hover:text-primary transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border-subtle bg-surface text-[13px] text-secondary hover:border-muted hover:text-primary transition-colors shadow-sm"
           >
             <s.icon size={15} className="text-accent flex-shrink-0" />
             {s.label}
@@ -424,15 +560,15 @@ function Slide_WhatAISees() {
     <SlideWrap>
       <div className="max-w-4xl w-full">
         <div className="text-center mb-12">
-          <SlideLabel>05 — What the AI Sees</SlideLabel>
+          <SlideLabel>05 / What the AI Sees</SlideLabel>
           <h1 className="text-[44px] font-semibold tracking-tight text-primary leading-[1.06]">
             Not a document.<br /><Accent>An account.</Accent>
           </h1>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {questions.map((item, i) => (
-            <div key={i} className="border border-border-subtle rounded-xl p-6 bg-surface hover:border-muted transition-colors group">
+            <div key={i} className="border border-border-subtle rounded-xl p-6 bg-surface hover:border-muted transition-colors shadow-sm">
               <item.icon size={18} className="text-accent mb-3" />
               <p className="text-[16px] font-medium text-primary leading-snug">{item.q}</p>
             </div>
@@ -457,20 +593,20 @@ function Slide_Council() {
   return (
     <SlideWrap center={false}>
       <div className="flex-1 flex flex-col justify-center max-w-md">
-        <SlideLabel>06 — The AI Bid Council</SlideLabel>
+        <SlideLabel>06 / The AI Bid Council</SlideLabel>
         <h1 className="text-[40px] font-semibold tracking-tight text-primary leading-[1.08] mb-6">
           Five specialists.<br />
           One <Accent>structured verdict.</Accent>
         </h1>
         <Divider />
         <p className="text-[16px] text-secondary leading-relaxed">
-          Each agent deliberates over the same live evidence independently — eliminating groupthink and surfacing blind spots before commitments are made.
+          Each agent deliberates over the same live evidence independently, eliminating groupthink and surfacing blind spots before commitments are made.
         </p>
       </div>
 
-      <div className="absolute right-12 top-20 bottom-20 flex flex-col justify-center w-[340px] space-y-2.5">
+      <div className="hidden lg:flex absolute right-16 top-1/2 -translate-y-1/2 flex-col justify-center w-[340px] space-y-2.5">
         {agents.map((agent, i) => (
-          <div key={i} className="flex items-start gap-3 border border-border-subtle rounded-xl px-4 py-3.5 bg-surface hover:border-muted hover:bg-surface-2 transition-colors group">
+          <div key={i} className="flex items-start gap-3 border border-border-subtle rounded-xl px-4 py-3.5 bg-surface hover:border-muted hover:bg-surface-2 transition-colors shadow-sm">
             <div className="w-8 h-8 rounded-md border border-border-subtle flex items-center justify-center flex-shrink-0 text-muted group-hover:text-primary group-hover:border-muted transition-colors">
               <agent.icon size={15} />
             </div>
@@ -492,40 +628,40 @@ function Slide_Verdict() {
     <SlideWrap>
       <div className="max-w-4xl w-full">
         <div className="text-center mb-10">
-          <SlideLabel>07 — The Verdict</SlideLabel>
+          <SlideLabel>07 / The Verdict</SlideLabel>
           <h1 className="text-[44px] font-semibold tracking-tight text-primary leading-[1.06] mb-4">
             Structured decision. <Accent>Cited evidence.</Accent>
           </h1>
           <p className="text-[16px] text-secondary max-w-xl mx-auto">
-            The council produces one of three structured verdicts — with the exact evidence trail behind every claim.
+            The council produces one of three structured verdicts, with the exact evidence trail behind every claim.
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="border border-bid/40 rounded-xl p-6 bg-bid/5 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="border border-bid/40 rounded-xl p-6 bg-bid/5 text-center shadow-sm">
             <CheckCircle2 size={28} className="text-bid mx-auto mb-3" />
             <p className="text-[15px] font-medium text-bid mb-1">Bid</p>
             <p className="text-[12px] text-secondary">Strong commercial & technical alignment. Go.</p>
           </div>
-          <div className="border border-conditional/40 rounded-xl p-6 bg-conditional/5 text-center">
+          <div className="border border-conditional/40 rounded-xl p-6 bg-conditional/5 text-center shadow-sm">
             <Clock size={28} className="text-conditional mx-auto mb-3" />
             <p className="text-[15px] font-medium text-conditional mb-1">Conditional Bid</p>
             <p className="text-[12px] text-secondary">Viable with specific conditions met first.</p>
           </div>
-          <div className="border border-nobid/40 rounded-xl p-6 bg-nobid/5 text-center">
+          <div className="border border-nobid/40 rounded-xl p-6 bg-nobid/5 text-center shadow-sm">
             <XCircle size={28} className="text-nobid mx-auto mb-3" />
             <p className="text-[15px] font-medium text-nobid mb-1">No Bid</p>
-            <p className="text-[12px] text-secondary">Evidence doesn't support pursuit. Pass.</p>
+            <p className="text-[12px] text-secondary">Evidence doesn&apos;t support pursuit. Pass.</p>
           </div>
         </div>
 
-        <div className="mt-6 border border-border-subtle rounded-xl p-4 bg-surface">
+        <div className="mt-6 border border-border-subtle rounded-xl p-4 bg-surface shadow-sm">
           <div className="text-[10px] font-mono text-disabled uppercase tracking-wider mb-3">Evidence Chain</div>
           <div className="space-y-1.5">
             {[
-              { id: 'EV-042', text: 'Graph8: 3 prior lost deals on compliance grounds — all since remediated' },
+              { id: 'EV-042', text: 'Graph8: 3 prior lost deals on compliance grounds: all since remediated' },
               { id: 'EV-107', text: 'Graph8 Radar: New CISO hired Q3 2025, prior vendor of ours' },
-              { id: 'EV-119', text: 'Commercial: ACV $420k at 82% projected margin — within target band' },
+              { id: 'EV-119', text: 'Commercial: ACV $420k at 82% projected margin, within target band' },
             ].map((e, i) => (
               <div key={i} className="flex items-start gap-3 text-[11px] font-mono">
                 <span className="text-accent flex-shrink-0">{e.id}</span>
@@ -552,23 +688,23 @@ function Slide_WriteBack() {
   return (
     <SlideWrap center={false}>
       <div className="flex-1 flex flex-col justify-center max-w-xl">
-        <SlideLabel>08 — Graph8 Write-Back</SlideLabel>
+        <SlideLabel>08 / Graph8 Write-Back</SlideLabel>
         <h1 className="text-[40px] font-semibold tracking-tight text-primary leading-[1.06] mb-4">
-          Graph8 isn't just<br />
+          Graph8 isn&apos;t just<br />
           where we get data.
         </h1>
         <p className="text-[20px] text-accent font-medium mb-6">
-          It's the system of record, the intelligence layer, and the execution layer.
+          It&apos;s the system of record, the intelligence layer, and the execution layer.
         </p>
         <Divider />
         <p className="text-[16px] text-secondary leading-relaxed">
-          Once a human approves the decision, PursuitOS writes the full outcome directly into Graph8 — closing the loop from intelligence to execution.
+          Once a human approves the decision, PursuitOS writes the full outcome directly into Graph8, closing the loop from intelligence to execution.
         </p>
       </div>
 
-      <div className="absolute right-12 top-1/2 -translate-y-1/2 w-[320px] space-y-2">
+      <div className="hidden lg:block absolute right-16 top-1/2 -translate-y-1/2 w-[320px] space-y-2">
         {steps.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 border border-border-subtle rounded-lg px-4 py-3 bg-surface">
+          <div key={i} className="flex items-center gap-3 border border-border-subtle rounded-lg px-4 py-3 bg-surface shadow-sm">
             <CheckCircle2 size={14} className="text-bid flex-shrink-0" />
             <div>
               <p className="text-[12px] font-medium text-primary">{s.label}</p>
@@ -587,10 +723,10 @@ function Slide_Revival() {
   return (
     <SlideWrap center={false}>
       <div className="flex-1 flex flex-col justify-center max-w-xl">
-        <SlideLabel>09 — Revival Scanner</SlideLabel>
+        <SlideLabel>09 / Revival Scanner</SlideLabel>
         <h1 className="text-[40px] font-semibold tracking-tight text-primary leading-[1.06] mb-6">
-          Companies don't just lose<br />
-          opportunities because they're<br />
+          Companies don&apos;t just lose<br />
+          opportunities because they&apos;re<br />
           <Accent>bad opportunities.</Accent>
         </h1>
         <Divider />
@@ -611,8 +747,8 @@ function Slide_Revival() {
         </div>
       </div>
 
-      <div className="absolute right-12 top-1/2 -translate-y-1/2 w-[300px]">
-        <div className="border border-border-subtle rounded-xl p-5 bg-surface space-y-4">
+      <div className="hidden lg:block absolute right-16 top-1/2 -translate-y-1/2 w-[300px]">
+        <div className="border border-border-subtle rounded-xl p-5 bg-surface space-y-4 shadow-xl">
           <div className="flex items-center gap-2 mb-1">
             <RotateCcw size={14} className="text-accent" />
             <span className="text-[12px] font-mono text-muted uppercase tracking-wider">Revival Detected</span>
@@ -648,18 +784,18 @@ function Slide_BigPicture() {
   return (
     <SlideWrap>
       <div className="max-w-3xl text-center">
-        <SlideLabel>10 — The Real Problem We Solve</SlideLabel>
+        <SlideLabel>10 / The Real Problem We Solve</SlideLabel>
         <h1 className="text-[44px] font-semibold tracking-tight text-primary leading-[1.06] mb-8">
-          We're not building<br />
+          We&apos;re not building<br />
           another <span className="text-secondary line-through">document summarizer.</span>
         </h1>
         <div className="border border-accent/30 rounded-2xl p-8 bg-accent/5 mb-8">
           <p className="text-[20px] text-primary leading-relaxed font-medium">
-            "Should we spend our company's time, money, engineering resources, and executive attention pursuing this opportunity?"
+            &quot;Should we spend our company&apos;s time, money, engineering resources, and executive attention pursuing this opportunity?&quot;
           </p>
         </div>
         <p className="text-[17px] text-secondary leading-relaxed max-w-2xl mx-auto">
-          That is the question PursuitOS answers — by combining the RFP with the live reality of the account in Graph8, running it through an executive deliberation council, and turning the result into an executable pursuit.
+          That is the question PursuitOS answers: by combining the RFP with the live reality of the account in Graph8, running it through an executive deliberation council, and turning the result into an executable pursuit.
         </p>
       </div>
     </SlideWrap>
@@ -673,35 +809,35 @@ function Slide_Closing() {
     <SlideWrap>
       <div className="text-center max-w-3xl">
         <div className="flex items-center justify-center gap-2.5 mb-12">
-          <div className="w-8 h-8 rounded-[6px] bg-accent flex items-center justify-center">
-            <Command size={16} className="text-white" />
+          <div className="w-8 h-8 rounded-[6px] bg-accent flex-items-center justify-center flex">
+            <Command size={16} className="text-white m-auto" />
           </div>
           <span className="text-[18px] font-semibold text-primary tracking-tight">PursuitOS</span>
         </div>
 
         <h1 className="text-[52px] lg:text-[64px] font-semibold tracking-tight text-primary leading-[1.06] mb-6">
-          From RFP to decision —<br />
+          From RFP to decision,<br />
           <Accent>grounded in Graph8.</Accent>
         </h1>
 
         <Divider />
 
         <p className="text-[18px] text-secondary mb-10">
-          That's PursuitOS.
+          That&apos;s PursuitOS.
         </p>
 
-        <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-          <div className="border border-border-subtle rounded-xl p-4 bg-surface">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
+          <div className="border border-border-subtle rounded-xl p-4 bg-surface shadow-sm">
             <ShieldCheck size={16} className="text-accent mb-2" />
             <p className="text-[12px] font-medium text-primary mb-0.5">Evidence-Backed</p>
             <p className="text-[11px] text-muted">Every claim cites a Graph8 record or document</p>
           </div>
-          <div className="border border-border-subtle rounded-xl p-4 bg-surface">
+          <div className="border border-border-subtle rounded-xl p-4 bg-surface shadow-sm">
             <Brain size={16} className="text-accent mb-2" />
             <p className="text-[12px] font-medium text-primary mb-0.5">Multi-Agent Council</p>
             <p className="text-[11px] text-muted">5 specialist perspectives, one structured verdict</p>
           </div>
-          <div className="border border-border-subtle rounded-xl p-4 bg-surface">
+          <div className="border border-border-subtle rounded-xl p-4 bg-surface shadow-sm">
             <Zap size={16} className="text-accent mb-2" />
             <p className="text-[12px] font-medium text-primary mb-0.5">Graph8 Native</p>
             <p className="text-[11px] text-muted">SOR, intelligence layer & execution layer</p>
@@ -711,5 +847,3 @@ function Slide_Closing() {
     </SlideWrap>
   );
 }
-
-
