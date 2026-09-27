@@ -167,7 +167,7 @@ export default async function PursuitsDashboard() {
                   <td className="py-3 px-4 relative z-10">
                     {getStatusDisplay(pursuit.status)}
                   </td>
-                  <td className="py-3 pr-8 pl-4 text-[13px] text-muted tabular-nums relative z-10 text-right">
+                  <td className="py-3 pr-8 pl-4 text-[13px] text-muted tabular-nums relative z-10 text-right" suppressHydrationWarning>
                     {new Date(pursuit.updatedAt || pursuit.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

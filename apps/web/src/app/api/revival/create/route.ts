@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createRevivalPursuit } from '@pursuitos/server/pursuits/revival';
+import { createRevivalPursuit, runRevivalPipeline } from '@pursuitos/server/pursuits/revival';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -25,6 +26,15 @@ export async function POST(request: Request) {
       accountNotes: accountNotes || undefined
     });
 
+    if (!result.alreadyExists) {
+      // Run the heavy AI pipeline in the background so Vercel does not time out
+      runRevivalPipeline(
+        result.pursuitId, 
+        companyDomain.trim().toLowerCase(), 
+        lossReason || undefined
+      ).catch(console.error);
+    }
+
     try {
       const { revalidatePath } = await import('next/cache');
       revalidatePath('/pursuits');
@@ -35,8 +45,8 @@ export async function POST(request: Request) {
       success: true,
       pursuitId: result.pursuitId,
       alreadyExists: result.alreadyExists,
-      decision: result.decision
-    });
+      status: 'ANALYZING'
+    }, { status: 202 });
   } catch (error: any) {
     console.error('[api/revival/create] Error creating revival pursuit:', error);
     return NextResponse.json(

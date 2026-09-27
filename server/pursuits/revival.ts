@@ -92,10 +92,17 @@ export async function createRevivalPursuit(params: CreateRevivalPursuitParams): 
 
   await db.insert(opportunityRequirements).values(requirementsToInsert);
 
+  return {
+    pursuitId,
+    alreadyExists: false
+  };
+}
+
+export async function runRevivalPipeline(pursuitId: string, companyDomain: string, lossReason?: string): Promise<void> {
   try {
     // 5. Collect evidence for company (also runs quality layer & fetches deal notes)
-    console.log(`[revival] Step 1/4: Collecting Graph8 evidence for ${params.companyDomain}...`);
-    await collectEvidence(pursuitId, params.companyDomain);
+    console.log(`[revival] Step 1/4: Collecting Graph8 evidence for ${companyDomain}...`);
+    await collectEvidence(pursuitId, companyDomain);
 
     // 6. Match historical deals
     console.log(`[revival] Step 2/4: Matching historical deals...`);
@@ -103,7 +110,7 @@ export async function createRevivalPursuit(params: CreateRevivalPursuitParams): 
 
     // 7. Build Why Now analysis
     console.log(`[revival] Step 3/4: Building Why Now strategic assessment...`);
-    await buildWhyNow(pursuitId, { lossReason: params.lossReason });
+    await buildWhyNow(pursuitId, { lossReason });
 
     // 8. Run 5-agent council in parallel with anti-anchoring
     console.log(`[revival] Step 4/4: Launching 5-Agent Council...`);
@@ -114,17 +121,11 @@ export async function createRevivalPursuit(params: CreateRevivalPursuitParams): 
     const synthesis = await synthesize(pursuitId, councilRun.runId, councilRun.reviews, reqs);
 
     console.log(`[revival] Revival analysis complete! Decision: ${synthesis.decision.toUpperCase()}`);
-    return {
-      pursuitId,
-      alreadyExists: false,
-      decision: synthesis.decision
-    };
   } catch (err: any) {
     console.error(`[revival] Pipeline execution encountered error for pursuit ${pursuitId}:`, err);
     // Even if error occurs in synthesis, mark as READY_FOR_REVIEW so user can inspect
     await db.update(pursuits)
       .set({ status: 'READY_FOR_REVIEW' })
       .where(eq(pursuits.id, pursuitId));
-    return { pursuitId, alreadyExists: false };
   }
 }

@@ -120,9 +120,51 @@ export default function RevivalScannerPage() {
       if (!res.ok) throw new Error('Failed to initiate revival pursuit');
       const data = await res.json();
       
-      if (data?.pursuitId) {
-        router.push(`/pursuits/${data.pursuitId}`);
+      if (!data?.pursuitId) {
+        throw new Error('No pursuit ID returned');
       }
+
+      const pursuitId = data.pursuitId;
+
+      // Start polling status just like New Pursuits
+      const POLL_INTERVAL_MS = 3000;
+      const POLL_TIMEOUT_MS = 7 * 60 * 1000; // 7-minute ceiling
+      const pollStart = Date.now();
+
+      await new Promise<void>((resolve, reject) => {
+        const interval = setInterval(async () => {
+          try {
+            if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
+              clearInterval(interval);
+              reject(new Error('Analysis timed out. Please try again.'));
+              return;
+            }
+
+            const statusRes = await fetch(`/api/pursuits/${pursuitId}/status`);
+            if (!statusRes.ok) return;
+
+            const statusData = await statusRes.json();
+            const status = statusData?.status;
+
+            const DONE_STATUSES = ['BID', 'NO_BID', 'CONDITIONAL_BID', 'WATCH', 'READY_FOR_REVIEW', 'EXECUTED', 'DENIED'];
+
+            if (DONE_STATUSES.includes(status)) {
+              clearInterval(interval);
+              resolve();
+            } else if (status === 'ERROR') {
+              clearInterval(interval);
+              reject(new Error('Pipeline encountered an error. Please check server logs.'));
+            }
+          } catch (pollErr) {
+            console.warn('[poll] Transient error:', pollErr);
+          }
+        }, POLL_INTERVAL_MS);
+      });
+
+      setAnalysisProgress(100);
+      setActiveStage('Consensus Reached');
+
+      router.push(`/pursuits/${pursuitId}`);
     } catch (err: any) {
       alert(`Could not launch revival analysis: ${err?.message || 'Unknown error'}`);
       setAnalyzingDealId(null);
@@ -273,7 +315,7 @@ export default function RevivalScannerPage() {
                           ${deal.amount.toLocaleString()} USD
                         </span>
                         <span>•</span>
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1" suppressHydrationWarning>
                           <Clock size={12} /> Lost {deal.daysSinceLost} days ago ({new Date(deal.closedDate).toLocaleDateString()})
                         </span>
                         <span>•</span>
