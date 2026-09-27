@@ -245,7 +245,7 @@ export default function PursuitScreenClient({
                     <button onClick={() => setIsEditingBid(false)} className="text-[12px] bg-accent text-white px-3 py-1.5 rounded-md hover:bg-accent-hover">Save</button>
                   </div>
                 ) : (
-                  <div className="text-[24px] font-bold text-primary font-mono flex items-center gap-2">
+                  <div className="text-[24px] font-bold text-primary font-mono flex items-center gap-2" suppressHydrationWarning>
                     ${editedBidAmount ? editedBidAmount.toLocaleString() : '0'} <span className="text-[13px] font-normal text-secondary font-sans">USD</span>
                     {!isExecuted && !isDenied && (
                       <button onClick={() => setIsEditingBid(true)} className="text-secondary hover:text-accent transition-colors ml-1 focus:outline-none" title="Edit Bid Amount">
@@ -261,7 +261,7 @@ export default function PursuitScreenClient({
 
               <div className="p-4 rounded-md border border-border-subtle bg-surface/30">
                 <div className="text-[11px] uppercase tracking-wider text-muted font-medium mb-1">Client RFP Budget Ceiling</div>
-                <div className="text-[24px] font-bold text-primary font-mono">
+                <div className="text-[24px] font-bold text-primary font-mono" suppressHydrationWarning>
                   {pricing.clientBudget ? (
                     <>${pricing.clientBudget.toLocaleString()} <span className="text-[13px] font-normal text-secondary font-sans">USD</span></>
                   ) : (
@@ -321,7 +321,7 @@ export default function PursuitScreenClient({
                               {Math.round(ratio * 100)}%
                             </span>
                           )}
-                          <span className="font-mono font-semibold text-primary sm:text-right min-w-[90px]">
+                          <span className="font-mono font-semibold text-primary sm:text-right min-w-[90px]" suppressHydrationWarning>
                             ${dynamicAmount.toLocaleString()} USD
                           </span>
                         </div>
