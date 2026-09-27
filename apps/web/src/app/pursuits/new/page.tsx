@@ -752,19 +752,19 @@ function NewPursuitContent() {
                   {deliberationLogs.map((log) => {
                     const getIcon = () => {
                       if (log.role === 'cto') return <Shield size={14} className="text-bid" />;
-                      if (log.role === 'sales') return <TrendingUp size={14} className="text-accent" />;
-                      if (log.role === 'legal') return <Scale size={14} className="text-conditional" />;
-                      if (log.role === 'delivery') return <Briefcase size={14} className="text-nobid" />;
-                      if (log.role === 'cso') return <BrainCircuit size={14} className="text-purple-400" />;
+                      if (log.role === 'commercial') return <TrendingUp size={14} className="text-accent" />;
+                      if (log.role === 'competitive') return <Scale size={14} className="text-conditional" />;
+                      if (log.role === 'relationship') return <Briefcase size={14} className="text-nobid" />;
+                      if (log.role === 'ceo') return <BrainCircuit size={14} className="text-purple-400" />;
                       return <Sparkles size={14} className="text-muted" />;
                     };
 
                     const getRoleBadge = () => {
                       if (log.role === 'cto') return 'bg-bid/10 text-bid border-bid/20';
-                      if (log.role === 'sales') return 'bg-accent/10 text-accent border-accent/20';
-                      if (log.role === 'legal') return 'bg-conditional/10 text-conditional border-conditional/20';
-                      if (log.role === 'delivery') return 'bg-nobid/10 text-nobid border-nobid/20';
-                      if (log.role === 'cso') return 'bg-purple-500/10 text-purple-300 border-purple-500/20';
+                      if (log.role === 'commercial') return 'bg-accent/10 text-accent border-accent/20';
+                      if (log.role === 'competitive') return 'bg-conditional/10 text-conditional border-conditional/20';
+                      if (log.role === 'relationship') return 'bg-nobid/10 text-nobid border-nobid/20';
+                      if (log.role === 'ceo') return 'bg-purple-500/10 text-purple-300 border-purple-500/20';
                       return 'bg-surface-3 text-secondary border-border-subtle';
                     };
 
